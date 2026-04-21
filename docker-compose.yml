@@ -1,0 +1,17 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: fisight_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: fisight_db
+      MYSQL_USER: fisight_user
+      MYSQL_PASSWORD: fisightpassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - fisight_db_data:/var/lib/mysql
+
+volumes:
+  fisight_db_data:
