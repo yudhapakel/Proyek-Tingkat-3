@@ -5,3 +5,4 @@ PyMySQL
 python-multipart
 pillow
 pydantic
+cryptography
