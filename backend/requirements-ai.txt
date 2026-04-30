@@ -1,0 +1,6 @@
+# Optional AI dependencies for model-based inference.
+# Install only when the machine/storage is ready for heavier ML packages.
+torch
+torchvision
+numpy
+opencv-python-headless
