@@ -2,6 +2,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, text
@@ -99,6 +100,18 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
     email = payload.email.strip().lower()
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user or not verify_password(payload.password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email atau password salah")
+
+    token = create_access_token(subject=str(user.id), extra={"email": user.email})
+    return TokenResponse(access_token=token, user=user)
+
+
+@app.post("/auth/token", response_model=TokenResponse)
+def swagger_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # Swagger Authorize mengirim field bernama username, jadi kita pakai sebagai email.
+    email = form_data.username.strip().lower()
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email atau password salah")
 
     token = create_access_token(subject=str(user.id), extra={"email": user.email})
