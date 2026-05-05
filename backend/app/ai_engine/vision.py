@@ -16,7 +16,7 @@ except Exception:  # pragma: no cover - optional heavy AI dependency
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_MODEL_PATH = PROJECT_ROOT / "backend" / "models" / "fish_quality_mobilenetv2.pt"
 MODEL_PATH = Path(os.getenv("FISIGHT_AI_MODEL_PATH", DEFAULT_MODEL_PATH))
-DEFAULT_CLASS_NAMES = ["Buruk", "Sedang", "Baik"]
+DEFAULT_CLASS_NAMES = ["buruk", "sedang", "baik"]
 
 _model = None
 _preprocess = None
@@ -89,10 +89,22 @@ def _estimate_quality_scores(image: Image.Image) -> dict[str, float]:
     }
 
 
+def _normalize_status(label: str) -> str:
+    normalized = label.strip().lower().replace("_", "-").replace(" ", "-")
+    if normalized in {"baik", "fresh", "segar", "layak"}:
+        return "Baik"
+    if normalized in {"sedang", "medium", "cukup"}:
+        return "Sedang"
+    if normalized in {"buruk", "nonfresh", "non-fresh", "not-fresh", "tidak-segar", "busuk"}:
+        return "Buruk"
+    return label.strip().title() or "Tidak diketahui"
+
+
 def _status_recommendation(status: str) -> str:
-    if status == "Baik":
+    canonical_status = _normalize_status(status)
+    if canonical_status == "Baik":
         return "Ikan layak dipasarkan. Tetap simpan pada suhu dingin agar kualitas terjaga."
-    if status == "Sedang":
+    if canonical_status == "Sedang":
         return "Ikan masih dapat diproses, tetapi perlu penanganan cepat dan penyimpanan dingin."
     return "Kualitas ikan rendah. Perlu pemeriksaan manual sebelum dipasarkan."
 
@@ -107,12 +119,13 @@ def _status_from_score(overall_score: float) -> str:
 
 def _score_from_status(status: str, confidence: float, heuristic_score: float) -> float:
     """Convert classifier output into a stable 0-100 score for the existing API."""
+    canonical_status = _normalize_status(status)
     base_scores = {
         "Buruk": 45.0,
         "Sedang": 67.5,
         "Baik": 85.0,
     }
-    base = base_scores.get(status, heuristic_score)
+    base = base_scores.get(canonical_status, heuristic_score)
     # Blend class anchor with heuristic visual score so output remains meaningful for UI metrics.
     blended = (base * 0.72) + (heuristic_score * 0.28)
     confidence_adjustment = (confidence - 0.5) * 8
@@ -131,7 +144,8 @@ def _analyze_with_custom_model(image: Image.Image, heuristic_scores: dict[str, f
         confidence, predicted_idx = torch.max(probabilities, dim=0)
 
     confidence_score = float(confidence.item())
-    status = _class_names[int(predicted_idx.item())]
+    raw_status = _class_names[int(predicted_idx.item())]
+    status = _normalize_status(raw_status)
     overall_score = _score_from_status(status, confidence_score, heuristic_scores["overall_score"])
 
     # Keep detailed metric fields available for the current frontend. The trained classifier

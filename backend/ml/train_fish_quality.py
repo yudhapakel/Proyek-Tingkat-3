@@ -1,14 +1,15 @@
 """Train Fisight fish-quality classifier.
 
-Expected dataset structure:
+Expected dataset structure follows torchvision ImageFolder format.
+For the current Fisight MVP, two classes are enough:
 
 backend/datasets/fish_quality/
   baik/
     *.jpg|*.jpeg|*.png|*.webp
-  sedang/
-    *.jpg|*.jpeg|*.png|*.webp
   buruk/
     *.jpg|*.jpeg|*.png|*.webp
+
+A third `sedang/` class can be added later when the team has labeled borderline-quality images.
 
 Example:
   python backend/ml/train_fish_quality.py \
@@ -63,17 +64,28 @@ def validate_dataset(data_dir: Path) -> None:
     if not data_dir.exists():
         raise SystemExit(f"Dataset folder not found: {data_dir}")
 
-    counts = count_images(data_dir)
-    missing = [label for label in ["baik", "sedang", "buruk"] if counts.get(label, 0) == 0]
-    if missing:
+    counts = {label: count for label, count in count_images(data_dir).items() if count > 0}
+    if len(counts) < 2:
         raise SystemExit(
-            "Dataset belum siap. Isi minimal beberapa gambar untuk folder: "
-            + ", ".join(missing)
-            + f"\nStruktur yang dibaca: {data_dir}/baik, {data_dir}/sedang, {data_dir}/buruk"
+            "Dataset belum siap. Minimal butuh 2 folder kelas berisi gambar. "
+            "Untuk MVP Fisight gunakan folder `baik/` dan `buruk/`."
         )
 
-    if sum(counts.values()) < 15:
-        print("WARNING: dataset sangat kecil. Model bisa overfit; gunakan ini hanya untuk proof-of-concept.")
+    if "baik" not in counts or "buruk" not in counts:
+        print(
+            "WARNING: label yang direkomendasikan untuk backend adalah `baik` dan `buruk`. "
+            f"Label saat ini: {', '.join(counts)}"
+        )
+
+    small_classes = [label for label, count in counts.items() if count < 20]
+    if small_classes:
+        print(
+            "WARNING: beberapa kelas punya <20 gambar dan rawan overfit: "
+            + ", ".join(f"{label}={counts[label]}" for label in small_classes)
+        )
+
+    if sum(counts.values()) < 40:
+        print("WARNING: dataset total masih kecil. Gunakan hasil training sebagai proof-of-concept dulu.")
 
 
 def build_model(num_classes: int, freeze_backbone: bool) -> nn.Module:

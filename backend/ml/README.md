@@ -4,11 +4,14 @@ Folder ini berisi pipeline awal untuk melatih model klasifikasi kualitas ikan.
 
 ## Target Model
 
-Model saat ini memakai transfer learning `MobileNetV2` untuk klasifikasi 3 kelas:
+Model saat ini memakai transfer learning `MobileNetV2`.
 
-- `baik`
-- `sedang`
-- `buruk`
+Untuk MVP Fisight, dataset yang tersedia paling cocok untuk klasifikasi 2 kelas:
+
+- `baik` — mapping dari data `Fresh`
+- `buruk` — mapping dari data `NonFresh`
+
+Kelas `sedang` bisa ditambahkan nanti jika tim punya gambar borderline-quality yang dilabel manual.
 
 Backend `/scan` akan otomatis memakai model hasil training jika file berikut tersedia:
 
@@ -27,8 +30,6 @@ backend/datasets/fish_quality/
   baik/
     ikan_001.jpg
     ikan_002.jpg
-  sedang/
-    ikan_101.jpg
   buruk/
     ikan_201.jpg
 ```
@@ -54,6 +55,23 @@ Dari root repo:
 ```
 
 Jika storage/laptop berat, install ini hanya saat mau training/inference model.
+
+## Prepare Dataset dari Folder Lokal Yudha
+
+Jika dataset sudah diekstrak di `~/Tugas Kuliah SMT6`, jalankan dari root repo:
+
+```bash
+.venv/bin/python backend/ml/prepare_freshness_dataset.py --reset
+```
+
+Script ini akan copy data:
+
+- `Datasets/Anchovy/Fresh` → `backend/datasets/fish_quality/baik`
+- `Datasets/Anchovy/NonFresh` → `backend/datasets/fish_quality/buruk`
+- `Datasets/HorseMackerel/Fresh` → `backend/datasets/fish_quality/baik`
+- `Datasets/HorseMackerel/NonFresh` → `backend/datasets/fish_quality/buruk`
+- `fresh and non-freh fish/fresh` → `backend/datasets/fish_quality/baik`
+- `fresh and non-freh fish/non-fresh` → `backend/datasets/fish_quality/buruk`
 
 ## Training
 
