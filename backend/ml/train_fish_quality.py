@@ -29,7 +29,7 @@ from pathlib import Path
 try:
     import torch
     from torch import nn
-    from torch.utils.data import DataLoader, random_split
+    from torch.utils.data import DataLoader, Subset
     from torchvision import datasets, models, transforms
 except ModuleNotFoundError as exc:  # pragma: no cover - dependency guard for local setup
     raise SystemExit(
@@ -38,6 +38,32 @@ except ModuleNotFoundError as exc:  # pragma: no cover - dependency guard for lo
     ) from exc
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+
+
+class NonEmptyImageFolder(datasets.ImageFolder):
+    """ImageFolder variant that ignores class folders without valid images.
+
+    The repo keeps `sedang/.gitkeep` for future 3-class training, but the current
+    fresh/non-fresh dataset only fills `baik/` and `buruk/`. Plain ImageFolder
+    treats empty `sedang/` as an error, so this class discovers only non-empty
+    folders.
+    """
+
+    def find_classes(self, directory: str):
+        root = Path(directory)
+        classes = []
+        for class_dir in sorted(path for path in root.iterdir() if path.is_dir()):
+            has_images = any(
+                file.is_file() and file.suffix.lower() in IMAGE_EXTENSIONS
+                for file in class_dir.rglob("*")
+            )
+            if has_images:
+                classes.append(class_dir.name)
+
+        if not classes:
+            raise FileNotFoundError(f"Tidak ada folder kelas berisi gambar valid di {directory}")
+
+        return classes, {class_name: index for index, class_name in enumerate(classes)}
 
 
 def parse_args() -> argparse.Namespace:
@@ -128,16 +154,19 @@ def main() -> None:
         ]
     )
 
-    full_dataset = datasets.ImageFolder(args.data_dir, transform=train_transform)
-    class_names = full_dataset.classes
-    val_size = max(1, int(len(full_dataset) * args.val_ratio))
-    train_size = len(full_dataset) - val_size
-    train_dataset, val_dataset = random_split(
-        full_dataset,
-        [train_size, val_size],
-        generator=torch.Generator().manual_seed(args.seed),
-    )
-    val_dataset.dataset.transform = eval_transform
+    train_base_dataset = NonEmptyImageFolder(args.data_dir, transform=train_transform)
+    eval_base_dataset = NonEmptyImageFolder(args.data_dir, transform=eval_transform)
+    class_names = train_base_dataset.classes
+    print(f"Classes: {class_names}")
+
+    val_size = max(1, int(len(train_base_dataset) * args.val_ratio))
+    train_size = len(train_base_dataset) - val_size
+    indices = torch.randperm(len(train_base_dataset), generator=torch.Generator().manual_seed(args.seed)).tolist()
+    train_indices = indices[:train_size]
+    val_indices = indices[train_size:]
+
+    train_dataset = Subset(train_base_dataset, train_indices)
+    val_dataset = Subset(eval_base_dataset, val_indices)
 
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=2)
