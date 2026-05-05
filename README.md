@@ -1,6 +1,6 @@
 # AIFish 🐟
 
-Web app buat identifikasi jenis ikan pakai AI. Upload foto ikan, nanti sistem bakal ngasih tau itu ikan apa.
+Web app buat identifikasi jenis ikan pakai AI. Upload foto ikan, nanti sistem bakal ngasih tau itu ikan fresh atau engga.
 
 ## Tech Stack
 
