@@ -46,7 +46,7 @@ src/
 - [x] Forgot password page
 - [x] Underwater background (seaweed + bubbles animation)
 - [x] Responsive design
-- [ ] Integrasi backend / Firebase
+- [ ] Integrasi backend
 - [ ] Halaman utama (dashboard)
 - [ ] Fish detection (upload + AI)
 - [ ] Encyclopedia ikan
