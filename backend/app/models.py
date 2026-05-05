@@ -32,6 +32,7 @@ class FishAnalysis(Base):
     gill_score = Column(Float, nullable=False, default=0)
     scale_score = Column(Float, nullable=False, default=0)
     confidence_score = Column(Float, nullable=False, default=0)
+    model_used = Column(String(100), nullable=False, default="heuristic_fallback")
 
     status = Column(String(50), nullable=False)
     recommendation = Column(Text, nullable=True)

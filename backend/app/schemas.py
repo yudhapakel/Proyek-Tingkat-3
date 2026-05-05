@@ -42,6 +42,7 @@ class AnalysisResponse(BaseModel):
     gill_score: float
     scale_score: float
     confidence_score: float
+    model_used: str = "heuristic_fallback"
     status: str
     recommendation: str | None = None
     created_at: datetime | None = None
