@@ -10,8 +10,8 @@ from sqlalchemy.orm import Session
 
 from . import models
 from .ai_engine.vision import analyze_fish_image
-from .database import engine, get_db
-from .schemas import AnalysisResponse, TokenResponse, UserCreate, UserLogin, UserResponse
+from .database import SessionLocal, engine, get_db
+from .schemas import ArticleListResponse, ArticleResponse, AnalysisResponse, TokenResponse, UserCreate, UserLogin, UserResponse
 from .security import create_access_token, get_current_user, hash_password, verify_password
 
 models.Base.metadata.create_all(bind=engine)
@@ -39,6 +39,54 @@ def _ensure_analysis_schema() -> None:
 
 
 _ensure_analysis_schema()
+
+
+SEED_ARTICLES = [
+    {
+        "slug": "menjaga-kualitas-ikan-segar-distribusi",
+        "title": "Cara Menjaga Kualitas Ikan Segar Selama Distribusi",
+        "summary": "Panduan praktis menjaga rantai dingin, kebersihan wadah, dan waktu distribusi agar kualitas ikan tetap stabil.",
+        "content": "Kualitas ikan sangat dipengaruhi oleh suhu, kebersihan, dan waktu penanganan setelah ditangkap. Distributor perlu menjaga rantai dingin dengan es atau cold storage, memisahkan ikan rusak dari ikan segar, serta menghindari paparan sinar matahari langsung. Pemeriksaan visual seperti kejernihan mata, warna insang, bau, dan tekstur sisik juga penting dilakukan sebelum ikan dipasarkan.",
+        "category": "Edukasi",
+        "tags": "kualitas ikan,distribusi,rantai dingin",
+        "image_url": "https://images.unsplash.com/photo-1534766555764-ce878a5e3a2b?auto=format&fit=crop&w=900&q=80",
+        "source_url": "https://www.fao.org/fishery/en/topic/166973",
+    },
+    {
+        "slug": "indikator-ikan-segar-untuk-qc",
+        "title": "Indikator Visual Ikan Segar untuk Petugas QC",
+        "summary": "Kenali tanda dasar ikan segar dari mata, insang, bau, tekstur, dan kondisi sisik sebelum masuk proses penjualan.",
+        "content": "Ikan segar umumnya memiliki mata jernih dan menonjol, insang berwarna merah cerah, bau laut yang tidak menyengat, tekstur daging elastis, serta sisik yang masih melekat kuat. Jika mata keruh, insang kecokelatan, lendir berlebih, atau bau asam muncul, ikan perlu diperiksa lebih lanjut sebelum didistribusikan.",
+        "category": "Quality Control",
+        "tags": "qc,ikan segar,insang,sisik",
+        "image_url": "https://images.unsplash.com/photo-1510130387422-82bed34b37e9?auto=format&fit=crop&w=900&q=80",
+        "source_url": "https://www.fao.org/4/v7180e/V7180E05.htm",
+    },
+    {
+        "slug": "peran-ai-dalam-sortasi-kualitas-ikan",
+        "title": "Peran AI dalam Sortasi Kualitas Ikan",
+        "summary": "AI dapat membantu distributor mempercepat pemeriksaan awal kualitas ikan melalui analisis gambar dan riwayat pemeriksaan.",
+        "content": "Sistem berbasis AI dapat digunakan sebagai alat bantu sortasi awal dengan membaca pola visual pada gambar ikan. Model dapat dilatih untuk mengenali indikator seperti warna, kecerahan, tekstur, dan pola kerusakan. Hasil AI tetap perlu diposisikan sebagai rekomendasi pendukung, bukan pengganti sepenuhnya dari pemeriksaan manual petugas QC.",
+        "category": "Teknologi",
+        "tags": "ai,computer vision,sortasi ikan",
+        "image_url": "https://images.unsplash.com/photo-1581090700227-1e37b190418e?auto=format&fit=crop&w=900&q=80",
+        "source_url": "https://www.fao.org/fishery/en/openasfa",
+    },
+]
+
+
+def _seed_articles() -> None:
+    db = SessionLocal()
+    try:
+        if db.query(models.Article).first():
+            return
+        db.add_all(models.Article(**article) for article in SEED_ARTICLES)
+        db.commit()
+    finally:
+        db.close()
+
+
+_seed_articles()
 
 UPLOAD_DIR = Path(__file__).resolve().parents[1] / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -121,6 +169,40 @@ def swagger_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session 
 @app.get("/users/me", response_model=UserResponse)
 def get_me(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+
+@app.get("/articles", response_model=list[ArticleListResponse])
+def list_articles(
+    category: str | None = None,
+    search: str | None = None,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+):
+    query = db.query(models.Article).filter(models.Article.is_published.is_(True))
+    if category:
+        query = query.filter(models.Article.category == category)
+    if search:
+        pattern = f"%{search.strip()}%"
+        query = query.filter(
+            models.Article.title.ilike(pattern)
+            | models.Article.summary.ilike(pattern)
+            | models.Article.content.ilike(pattern)
+        )
+
+    safe_limit = max(1, min(limit, 50))
+    return query.order_by(models.Article.published_at.desc()).limit(safe_limit).all()
+
+
+@app.get("/articles/{slug}", response_model=ArticleResponse)
+def get_article_detail(slug: str, db: Session = Depends(get_db)):
+    article = (
+        db.query(models.Article)
+        .filter(models.Article.slug == slug, models.Article.is_published.is_(True))
+        .first()
+    )
+    if not article:
+        raise HTTPException(status_code=404, detail="Artikel tidak ditemukan")
+    return article
 
 
 def _validate_image(file: UploadFile) -> None:

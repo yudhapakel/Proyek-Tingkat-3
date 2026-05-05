@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -38,3 +38,22 @@ class FishAnalysis(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("User", back_populates="histories")
+
+
+class Article(Base):
+    __tablename__ = "articles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String(160), unique=True, index=True, nullable=False)
+    title = Column(String(255), nullable=False)
+    summary = Column(Text, nullable=False)
+    content = Column(Text, nullable=False)
+    category = Column(String(100), nullable=False, default="Edukasi")
+    tags = Column(String(255), nullable=True)
+    image_url = Column(String(500), nullable=True)
+    source_url = Column(String(500), nullable=True)
+    author = Column(String(100), nullable=False, default="Fisight Team")
+    is_published = Column(Boolean, nullable=False, default=True)
+    published_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

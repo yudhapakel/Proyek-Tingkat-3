@@ -45,3 +45,34 @@ class AnalysisResponse(BaseModel):
     status: str
     recommendation: str | None = None
     created_at: datetime | None = None
+
+
+class ArticleResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    slug: str
+    title: str
+    summary: str
+    content: str
+    category: str
+    tags: str | None = None
+    image_url: str | None = None
+    source_url: str | None = None
+    author: str
+    published_at: datetime | None = None
+    created_at: datetime | None = None
+
+
+class ArticleListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    slug: str
+    title: str
+    summary: str
+    category: str
+    tags: str | None = None
+    image_url: str | None = None
+    author: str
+    published_at: datetime | None = None
