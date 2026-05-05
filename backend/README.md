@@ -46,7 +46,24 @@ API docs tersedia di:
 
 ## Catatan AI MVP
 
-AI engine saat ini memakai heuristic kualitas gambar agar flow backend/frontend bisa jalan dulu. Jika dependency `torch` dan `torchvision` tersedia, backend dapat memakai MobileNetV2 sebagai validasi pipeline inference. Model khusus kualitas ikan bisa diganti di `backend/app/ai_engine/vision.py`.
+AI engine sekarang mendukung dua mode:
+
+1. `fish_quality_mobilenetv2` — model custom hasil training dari `backend/ml/train_fish_quality.py` jika file `backend/models/fish_quality_mobilenetv2.pt` tersedia.
+2. `heuristic_fallback` — fallback ringan agar flow scan tetap berjalan saat dependency AI/model belum tersedia.
+
+Pipeline training dan struktur dataset ada di `backend/ml/README.md`. Ringkasnya:
+
+```bash
+.venv/bin/python -m pip install -r backend/requirements-ai.txt
+.venv/bin/python backend/ml/train_fish_quality.py \
+  --data-dir backend/datasets/fish_quality \
+  --output backend/models/fish_quality_mobilenetv2.pt \
+  --epochs 8 \
+  --batch-size 16 \
+  --freeze-backbone
+```
+
+Dataset perlu diletakkan pada folder `backend/datasets/fish_quality/baik`, `sedang`, dan `buruk`. File model dan gambar dataset tidak ikut di-commit; hanya struktur folder dan script training yang disimpan di repo.
 
 ## Catatan Database
 

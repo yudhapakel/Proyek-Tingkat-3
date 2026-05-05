@@ -6,3 +6,11 @@ __pycache__/
 *.py[cod]
 backend/uploads/*
 !backend/uploads/.gitkeep
+backend/models/*
+!backend/models/.gitkeep
+backend/datasets/fish_quality/baik/*
+!backend/datasets/fish_quality/baik/.gitkeep
+backend/datasets/fish_quality/sedang/*
+!backend/datasets/fish_quality/sedang/.gitkeep
+backend/datasets/fish_quality/buruk/*
+!backend/datasets/fish_quality/buruk/.gitkeep

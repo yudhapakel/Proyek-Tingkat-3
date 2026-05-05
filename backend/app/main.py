@@ -29,6 +29,7 @@ def _ensure_analysis_schema() -> None:
         "fish_type": "VARCHAR(100)",
         "overall_score": "FLOAT DEFAULT 0",
         "confidence_score": "FLOAT DEFAULT 0",
+        "model_used": "VARCHAR(100) DEFAULT 'heuristic_fallback'",
         "recommendation": "TEXT",
     }
 
@@ -243,6 +244,7 @@ async def scan_ikan(
         gill_score=float(result.get("gill_score", 0)),
         scale_score=float(result.get("scale_score", 0)),
         confidence_score=float(result.get("confidence_score", result.get("confidence", 0))),
+        model_used=result.get("model_used", "heuristic_fallback"),
         status=result.get("status", "Tidak diketahui"),
         recommendation=result.get("recommendation"),
     )
