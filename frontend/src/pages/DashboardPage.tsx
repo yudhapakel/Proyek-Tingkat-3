@@ -48,7 +48,11 @@ function ResultCard({ analysis }: { analysis: Analysis | null }) {
         <ScorePill label="Eye" value={analysis.eye_score} />
         <ScorePill label="Gill" value={analysis.gill_score} />
         <ScorePill label="Scale" value={analysis.scale_score} />
-        <ScorePill label="Confidence" value={analysis.confidence_score} />
+        <ScorePill label="Confidence" value={analysis.confidence_score * 100} />
+      </div>
+
+      <div className="model-badge">
+        Model: <strong>{analysis.model_used || 'heuristic_fallback'}</strong>
       </div>
     </article>
   )

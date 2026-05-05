@@ -27,6 +27,7 @@ export type Analysis = {
   confidence_score: number
   status: string
   recommendation: string | null
+  model_used: string
   created_at: string
 }
 

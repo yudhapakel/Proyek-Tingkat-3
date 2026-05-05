@@ -17,6 +17,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_MODEL_PATH = PROJECT_ROOT / "backend" / "models" / "fish_quality_mobilenetv2.pt"
 MODEL_PATH = Path(os.getenv("FISIGHT_AI_MODEL_PATH", DEFAULT_MODEL_PATH))
 DEFAULT_CLASS_NAMES = ["buruk", "sedang", "baik"]
+LOW_CONFIDENCE_THRESHOLD = float(os.getenv("FISIGHT_LOW_CONFIDENCE_THRESHOLD", "0.65"))
 
 _model = None
 _preprocess = None
@@ -100,7 +101,13 @@ def _normalize_status(label: str) -> str:
     return label.strip().title() or "Tidak diketahui"
 
 
-def _status_recommendation(status: str) -> str:
+def _status_recommendation(status: str, *, low_confidence: bool = False) -> str:
+    if low_confidence:
+        return (
+            "Model belum cukup yakin dengan hasil scan ini. "
+            "Lakukan pemeriksaan manual atau gunakan foto ikan yang lebih jelas."
+        )
+
     canonical_status = _normalize_status(status)
     if canonical_status == "Baik":
         return "Ikan layak dipasarkan. Tetap simpan pada suhu dingin agar kualitas terjaga."
@@ -145,7 +152,9 @@ def _analyze_with_custom_model(image: Image.Image, heuristic_scores: dict[str, f
 
     confidence_score = float(confidence.item())
     raw_status = _class_names[int(predicted_idx.item())]
-    status = _normalize_status(raw_status)
+    predicted_status = _normalize_status(raw_status)
+    low_confidence = confidence_score < LOW_CONFIDENCE_THRESHOLD
+    status = "Sedang" if low_confidence else predicted_status
     overall_score = _score_from_status(status, confidence_score, heuristic_scores["overall_score"])
 
     # Keep detailed metric fields available for the current frontend. The trained classifier
@@ -162,7 +171,7 @@ def _analyze_with_custom_model(image: Image.Image, heuristic_scores: dict[str, f
         "status": status,
         "confidence_score": round(confidence_score, 4),
         "overall_score": overall_score,
-        "recommendation": _status_recommendation(status),
+        "recommendation": _status_recommendation(status, low_confidence=low_confidence),
         "model_used": "fish_quality_mobilenetv2",
         **detailed_scores,
     }
