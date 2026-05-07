@@ -27,6 +27,7 @@ DEFAULT_DATASET_PAIRS = [
     ("Datasets/HorseMackerel/NonFresh", "buruk", "horsemackerel_nonfresh"),
     ("fresh and non-freh fish/fresh", "baik", "mixed_fresh"),
     ("fresh and non-freh fish/non-fresh", "buruk", "mixed_nonfresh"),
+    ("ikan_segar_manual", "baik", "manual_fresh"),
 ]
 
 
