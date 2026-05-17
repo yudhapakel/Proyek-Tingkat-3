@@ -1,5 +1,7 @@
-import { useState, useRef, type DragEvent } from 'react'
-import { Upload, ScanLine, X, Loader2, Fish, Download, Share2, CheckCircle2 } from 'lucide-react'
+import { useState, useRef, useEffect, type DragEvent } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Upload, ScanLine, X, Loader2, Fish, Download, Share2, CheckCircle2, AlertTriangle, XCircle, ShieldCheck } from 'lucide-react'
+
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import './ScanPage.css'
@@ -20,6 +22,7 @@ interface DetailScore {
 }
 
 interface ScanResult {
+  fishName: string
   overallScore: number
   quality: string
   summary: string
@@ -27,19 +30,44 @@ interface ScanResult {
   details: DetailScore[]
 }
 
-// Mock result generator
-function generateMockResult(preview: string): ScanResult {
+// Mock result generator - varies per image index
+function generateMockResult(preview: string, index: number): ScanResult {
+  const names = ['Ikan Tuna', 'Ikan Kakap Merah', 'Ikan Kembung', 'Ikan Tongkol']
+  const variants = [
+    { score: 89, quality: 'Kualitas Baik', details: [
+      { label: 'Kesegaran Umum', score: 89, status: 'Baik' as const, desc: 'Ikan menunjukan tanda-tanda yang baik dan kesegaran yang baik secara keseluruhan' },
+      { label: 'Kondisi Mata', score: 90, status: 'Baik' as const, desc: 'Mata jernih, cerah, dan menonjol. Tidak ada kekeruhan' },
+      { label: 'Kondisi Sisik', score: 68, status: 'Sedang' as const, desc: 'Sisik berwarna agak pudar, terdapat sel kulit mati ikan yang belum terlepas' },
+      { label: 'Kondisi Insang', score: 93, status: 'Baik' as const, desc: 'Insang memiliki kondisi yang sangat baik, tidak ada parasit' },
+    ]},
+    { score: 72, quality: 'Kualitas Baik', details: [
+      { label: 'Kesegaran Umum', score: 70, status: 'Baik' as const, desc: 'Ikan dalam kondisi cukup segar dengan aroma normal' },
+      { label: 'Kondisi Mata', score: 75, status: 'Baik' as const, desc: 'Mata cukup jernih meski sedikit kekuningan' },
+      { label: 'Kondisi Sisik', score: 65, status: 'Sedang' as const, desc: 'Beberapa sisik mulai terlepas di bagian perut' },
+      { label: 'Kondisi Insang', score: 78, status: 'Baik' as const, desc: 'Insang berwarna merah kecoklatan, masih dalam batas normal' },
+    ]},
+    { score: 45, quality: 'Kualitas Sedang', details: [
+      { label: 'Kesegaran Umum', score: 42, status: 'Sedang' as const, desc: 'Ikan menunjukan tanda awal penurunan kesegaran' },
+      { label: 'Kondisi Mata', score: 38, status: 'Buruk' as const, desc: 'Mata mulai keruh dan sedikit cekung' },
+      { label: 'Kondisi Sisik', score: 55, status: 'Sedang' as const, desc: 'Sisik kusam dan beberapa area mulai mengelupas' },
+      { label: 'Kondisi Insang', score: 48, status: 'Sedang' as const, desc: 'Insang berwarna agak pucat, perlu diperhatikan' },
+    ]},
+    { score: 30, quality: 'Kualitas Buruk', details: [
+      { label: 'Kesegaran Umum', score: 28, status: 'Buruk' as const, desc: 'Ikan sudah tidak segar, terdapat bau tidak sedap' },
+      { label: 'Kondisi Mata', score: 20, status: 'Buruk' as const, desc: 'Mata sangat keruh dan cekung dalam' },
+      { label: 'Kondisi Sisik', score: 35, status: 'Buruk' as const, desc: 'Sisik banyak terlepas dan warna sangat pudar' },
+      { label: 'Kondisi Insang', score: 32, status: 'Buruk' as const, desc: 'Insang berwarna coklat kehitaman, tidak layak konsumsi' },
+    ]},
+  ]
+  const v = variants[index % variants.length]
+  const name = names[index % names.length]
   return {
-    overallScore: 89,
-    quality: 'Kualitas Baik',
-    summary: 'Secara keseluruhan, ikan ini memiliki kualitas yang baik',
+    fishName: name,
+    overallScore: v.score,
+    quality: v.quality,
+    summary: `${name} memiliki ${v.quality.toLowerCase()} secara keseluruhan`,
     image: preview,
-    details: [
-      { label: 'Kesegaran Umum', score: 89, status: 'Baik', desc: 'Ikan menunjukan tanda-tanda yang baik dan kesegaran yang baik secara keseluruhan' },
-      { label: 'Kondisi Mata', score: 90, status: 'Baik', desc: 'Mata jernih, cerah, dan menonjol. Tidak ada kekeruhan' },
-      { label: 'Kondisi Sisik', score: 68, status: 'Sedang', desc: 'Sisik berwarna agak pudar, terdapat sel kulit mati ikan yang belum terlepas, disarankan mengisolasi ikan dan memberikan obat' },
-      { label: 'Kondisi Insang', score: 93, status: 'Baik', desc: 'Insang memiliki kondisi yang sangat baik, tidak ada parasit ataupun tanda-tanda penyakit' },
-    ],
+    details: v.details,
   }
 }
 
@@ -75,13 +103,31 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: num
   ctx.fillText(line.trim(), x, curY)
 }
 
+type ValidationState = 'idle' | 'checking' | 'valid' | 'warning' | 'rejected'
+
 export default function ScanPage() {
   const [dragActive, setDragActive] = useState(false)
   const [files, setFiles] = useState<UploadedFile[]>([])
   const [scanning, setScanning] = useState(false)
-  const [result, setResult] = useState<ScanResult | null>(null)
+  const [results, setResults] = useState<ScanResult[]>([])
+  const [activeTab, setActiveTab] = useState(0)
+  const [validation, setValidation] = useState<ValidationState>('idle')
   const inputRef = useRef<HTMLInputElement>(null)
   const resultRef = useRef<HTMLDivElement>(null)
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Accept result from riwayat page navigation (single result)
+  useEffect(() => {
+    const state = location.state as { result?: ScanResult } | null
+    if (state?.result) {
+      setResults([state.result])
+      setActiveTab(0)
+      window.history.replaceState({}, '')
+    }
+  }, [location.state])
+
+  const result = results[activeTab] || null
 
   const handleDrag = (e: DragEvent) => {
     e.preventDefault()
@@ -116,6 +162,7 @@ export default function ScanPage() {
       preview: URL.createObjectURL(f),
     }))
     setFiles(prev => [...prev, ...uploaded])
+    setValidation('idle') // reset validation when files change
   }
 
   const removeFile = (id: string) => {
@@ -124,21 +171,58 @@ export default function ScanPage() {
       if (file) URL.revokeObjectURL(file.preview)
       return prev.filter(f => f.id !== id)
     })
+    setValidation('idle')
   }
 
-  const handleScan = () => {
+  // Validate fish similarity before scanning
+  const validateAndScan = () => {
     if (files.length === 0) return
+    if (files.length === 1) {
+      // Single image - skip validation
+      startScan()
+      return
+    }
+    // Multiple images - validate similarity
+    setValidation('checking')
+    // Mock validation (replace with real AI API call)
+    setTimeout(() => {
+      // Demo logic: 2 files = warning, 4 files = rejected, others = valid
+      if (files.length === 4) {
+        setValidation('rejected')
+      } else if (files.length === 2) {
+        setValidation('warning')
+      } else {
+        setValidation('valid')
+        startScan()
+      }
+    }, 1500)
+  }
+
+  const startScan = () => {
+    setValidation('idle')
     setScanning(true)
     setTimeout(() => {
       setScanning(false)
-      setResult(generateMockResult(files[0].preview))
+      // All images are of same fish - produce single combined result
+      const combined = generateMockResult(files[0].preview, 0)
+      combined.summary = `Analisis dari ${files.length} foto: ${combined.fishName} memiliki ${combined.quality.toLowerCase()}`
+      setResults([combined])
+      setActiveTab(0)
     }, 3000)
+  }
+
+  const handleForceSubmit = () => {
+    // User chose to continue despite warning
+    setValidation('idle')
+    startScan()
   }
 
   const handleReset = () => {
     files.forEach(f => URL.revokeObjectURL(f.preview))
     setFiles([])
-    setResult(null)
+    setResults([])
+    setActiveTab(0)
+    setValidation('idle')
   }
 
   const handleDownload = async () => {
@@ -207,10 +291,14 @@ export default function ScanPage() {
     ctx.font = '400 10px Inter, sans-serif'
     ctx.fillText('dari 100', cx, cy + 24)
 
-    // Quality badge
+    // Quality badge + Fish name
     ctx.fillStyle = scoreColor
-    ctx.font = '700 13px Inter, sans-serif'
-    ctx.fillText(`✓ ${result.quality}`, cx, cardY + cardH - 12)
+    ctx.font = '700 12px Inter, sans-serif'
+    ctx.fillText(`✓ ${result.quality}`, cx, cardY + cardH - 28)
+
+    ctx.fillStyle = '#0c3547'
+    ctx.font = '800 16px Outfit, sans-serif'
+    ctx.fillText(result.fishName, cx, cardY + cardH - 8)
 
     // Detail cards - 2x2 grid
     const details = result.details
@@ -281,7 +369,7 @@ export default function ScanPage() {
 
   const handleShare = async () => {
     if (!result) return
-    const text = `🐟 Hasil Analisis Fisight\n\nSkor: ${result.overallScore}/100 - ${result.quality}\n${result.summary}\n\n${result.details.map(d => `• ${d.label}: ${d.score} (${d.status})`).join('\n')}\n\nDianalisis oleh Fisight AI`
+    const text = `🐟 Hasil Analisis Fisight\n\n${result.fishName}\nSkor: ${result.overallScore}/100 - ${result.quality}\n${result.summary}\n\n${result.details.map(d => `• ${d.label}: ${d.score} (${d.status})`).join('\n')}\n\nDianalisis oleh Fisight AI`
 
     if (navigator.share) {
       try {
@@ -296,7 +384,7 @@ export default function ScanPage() {
   const canUploadMore = files.length < MAX_FILES
 
   // ─── RESULT VIEW ───
-  if (result) {
+  if (results.length > 0 && result) {
     return (
       <div className="scan-page">
         <Navbar />
@@ -305,7 +393,9 @@ export default function ScanPage() {
           <div className="scan-header">
             <h1 className="scan-title">Hasil Analisis Kualitas</h1>
             <p className="scan-subtitle">
-              Berikut adalah hasil analisis kualitas ikan anda
+              {results.length > 1
+                ? `${results.length} gambar dianalisis secara terpisah`
+                : 'Berikut adalah hasil analisis kualitas ikan anda'}
             </p>
           </div>
         </div>
@@ -313,10 +403,32 @@ export default function ScanPage() {
         <div className="scan-body" data-nav-theme="light">
           <div className="result-wrapper" ref={resultRef}>
 
+            {/* Tabs for multiple results */}
+            {results.length > 1 && (
+              <div className="result-tabs">
+                {results.map((r, i) => (
+                  <button
+                    key={i}
+                    className={`result-tab ${activeTab === i ? 'result-tab--active' : ''}`}
+                    onClick={() => setActiveTab(i)}
+                  >
+                    <img src={r.image} alt="" className="result-tab__img" />
+                    <div className="result-tab__info">
+                      <span className="result-tab__label">Gambar {i + 1}</span>
+                      <span className={`result-tab__score result-tab__score--${r.overallScore >= 70 ? 'baik' : r.overallScore >= 40 ? 'sedang' : 'buruk'}`}>
+                        {r.overallScore}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Main result card */}
             <div className="result-main">
               <div className="result-main__image">
-                <img src={result.image} alt="Ikan yang dianalisis" />
+                <img src={result.image} alt={result.fishName} />
+                <div className="result-main__image-label">{result.fishName}</div>
               </div>
 
               <div className="result-main__info">
@@ -344,6 +456,7 @@ export default function ScanPage() {
                   <CheckCircle2 size={16} />
                   {result.quality}
                 </div>
+                <p className="result-main__fish-name">{result.fishName}</p>
                 <p className="result-main__summary">{result.summary}</p>
 
                 <div className="result-main__actions">
@@ -411,8 +524,8 @@ export default function ScanPage() {
           </span>
           <h1 className="scan-title">Identifikasi Kualitas Ikan</h1>
           <p className="scan-subtitle">
-            Upload foto ikan Anda untuk mendapatkan analisis
-            kualitas secara instan menggunakan AI.
+            Upload foto ikan dari berbagai sudut untuk analisis
+            kualitas yang lebih akurat menggunakan AI.
           </p>
         </div>
       </div>
@@ -435,10 +548,10 @@ export default function ScanPage() {
                 </div>
                 <h3 className="scan-card__title">Drag & drop foto ikan</h3>
                 <p className="scan-card__hint">
-                  atau klik untuk memilih file • JPG, PNG, WEBP
+                  Upload foto ikan yang <strong>sama</strong> dari berbagai sudut
                 </p>
                 <p className="scan-card__meta">
-                  Max 10MB &nbsp;•&nbsp; Resolusi min 480px &nbsp;•&nbsp; Maksimal {MAX_FILES} foto
+                  JPG, PNG, WEBP &nbsp;•&nbsp; Max 10MB &nbsp;•&nbsp; Maksimal {MAX_FILES} foto
                 </p>
               </div>
 
@@ -485,23 +598,71 @@ export default function ScanPage() {
                 ))}
               </div>
 
-              <button
-                className={`scan-btn ${scanning ? 'scan-btn--loading' : ''}`}
-                onClick={handleScan}
-                disabled={scanning}
-              >
-                {scanning ? (
-                  <>
-                    <Loader2 size={20} className="scan-btn__spinner" />
-                    Menganalisis...
-                  </>
-                ) : (
-                  <>
-                    <Fish size={20} />
-                    Mulai Scan
-                  </>
-                )}
-              </button>
+              {/* Validation warning banner */}
+              {validation === 'warning' && (
+                <div className="scan-validation scan-validation--warning">
+                  <div className="scan-validation__icon">
+                    <AlertTriangle size={20} />
+                  </div>
+                  <div className="scan-validation__text">
+                    <h4>Foto terdeteksi berbeda</h4>
+                    <p>AI mendeteksi foto yang diupload mungkin bukan ikan yang sama. Hasil analisis mungkin kurang akurat.</p>
+                  </div>
+                  <div className="scan-validation__actions">
+                    <button className="scan-validation__btn scan-validation__btn--continue" onClick={handleForceSubmit}>
+                      Tetap Scan
+                    </button>
+                    <button className="scan-validation__btn scan-validation__btn--cancel" onClick={() => setValidation('idle')}>
+                      Ganti Foto
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Validation rejected banner */}
+              {validation === 'rejected' && (
+                <div className="scan-validation scan-validation--rejected">
+                  <div className="scan-validation__icon">
+                    <XCircle size={20} />
+                  </div>
+                  <div className="scan-validation__text">
+                    <h4>Foto tidak valid</h4>
+                    <p>AI mendeteksi foto yang diupload merupakan ikan yang sangat berbeda. Harap upload foto dari ikan yang sama.</p>
+                  </div>
+                  <div className="scan-validation__actions">
+                    <button className="scan-validation__btn scan-validation__btn--cancel" onClick={handleReset}>
+                      Hapus Semua
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Scan button */}
+              {validation !== 'warning' && validation !== 'rejected' && (
+                <button
+                  className={`scan-btn ${scanning || validation === 'checking' ? 'scan-btn--loading' : ''}`}
+                  onClick={validateAndScan}
+                  disabled={scanning || validation === 'checking'}
+                >
+                  {validation === 'checking' ? (
+                    <>
+                      <Loader2 size={20} className="scan-btn__spinner" />
+                      <ShieldCheck size={18} />
+                      Memvalidasi kesamaan ikan...
+                    </>
+                  ) : scanning ? (
+                    <>
+                      <Loader2 size={20} className="scan-btn__spinner" />
+                      Menganalisis...
+                    </>
+                  ) : (
+                    <>
+                      <Fish size={20} />
+                      Mulai Scan
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           )}
 

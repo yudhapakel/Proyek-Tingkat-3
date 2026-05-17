@@ -4,6 +4,7 @@ import RegisterPage from './pages/RegisterPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import DashboardPage from './pages/DashboardPage'
 import ScanPage from './pages/ScanPage'
+import RiwayatPage from './pages/RiwayatPage'
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/scan" element={<ScanPage />} />
+      <Route path="/riwayat" element={<RiwayatPage />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )

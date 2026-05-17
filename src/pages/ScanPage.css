@@ -305,6 +305,110 @@
 }
 
 /* ============================================
+   Validation Banners
+   ============================================ */
+.scan-validation {
+  margin-top: 1.25rem;
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  animation: validation-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes validation-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.scan-validation--warning {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1.5px solid rgba(245, 158, 11, 0.25);
+}
+
+.scan-validation--rejected {
+  background: rgba(239, 68, 68, 0.06);
+  border: 1.5px solid rgba(239, 68, 68, 0.2);
+}
+
+.scan-validation__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.scan-validation--warning .scan-validation__icon {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.scan-validation--rejected .scan-validation__icon {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.scan-validation__text {
+  flex: 1;
+}
+
+.scan-validation__text h4 {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.scan-validation--warning .scan-validation__text h4 { color: #92400e; }
+.scan-validation--rejected .scan-validation__text h4 { color: #991b1b; }
+
+.scan-validation__text p {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.scan-validation__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.scan-validation__btn {
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 200ms;
+}
+
+.scan-validation__btn--continue {
+  background: #f59e0b;
+  color: #fff;
+}
+
+.scan-validation__btn--continue:hover {
+  background: #d97706;
+}
+
+.scan-validation__btn--cancel {
+  background: rgba(100, 116, 139, 0.08);
+  color: #475569;
+  border: 1.5px solid rgba(100, 116, 139, 0.15);
+}
+
+.scan-validation__btn--cancel:hover {
+  background: rgba(100, 116, 139, 0.15);
+}
+
+/* ============================================
    Full-Screen Scan Overlay
    ============================================ */
 .scan-overlay {
@@ -526,6 +630,74 @@
   padding: 0 1.5rem 4rem;
 }
 
+/* Tabs for multi-image results */
+.result-tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding: 0.5rem;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  overflow-x: auto;
+}
+
+.result-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 200ms;
+  flex-shrink: 0;
+}
+
+.result-tab:hover {
+  background: #f1f5f9;
+}
+
+.result-tab--active {
+  background: rgba(13, 148, 136, 0.06);
+  border-color: #0d9488;
+}
+
+.result-tab__img {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.result-tab__info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.result-tab__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.result-tab--active .result-tab__label {
+  color: #0c3547;
+}
+
+.result-tab__score {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.result-tab__score--baik { color: #10b981; }
+.result-tab__score--sedang { color: #f59e0b; }
+.result-tab__score--buruk { color: #ef4444; }
+
 /* Main result card */
 .result-main {
   background: #fff;
@@ -549,6 +721,20 @@
   border-radius: 16px;
   overflow: hidden;
   aspect-ratio: 4/3;
+  position: relative;
+}
+
+.result-main__image-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.6rem 1rem;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
 }
 
 .result-main__image img {
@@ -621,7 +807,15 @@
   color: #10b981;
   font-size: 0.8rem;
   font-weight: 700;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.4rem;
+}
+
+.result-main__fish-name {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0c3547;
+  margin-bottom: 0.25rem;
 }
 
 .result-main__summary {
