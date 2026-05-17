@@ -63,7 +63,7 @@ export default function DashboardPage() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="hero">
+      <section className="hero" data-nav-theme="dark">
         <div className="hero__bg">
           <img src={heroBg} alt="" className="hero__bg-img" />
           <div className="hero__bg-overlay" />
@@ -130,7 +130,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Features Section */}
-      <section className="features" ref={featuresRef}>
+      <section className="features" ref={featuresRef} data-nav-theme="light">
         {/* Decorative fish */}
         <div className="features__deco features__deco--fish-1">🐟</div>
         <div className="features__deco features__deco--fish-2">🐠</div>
@@ -167,7 +167,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Analysis Section */}
-      <section className="analysis">
+      <section className="analysis" data-nav-theme="light">
         <div className="analysis__deco analysis__deco--fish-1">🐟</div>
         <div className="analysis__deco analysis__deco--fish-2">🐠</div>
         <div className="analysis__deco analysis__deco--bubble-1" />
