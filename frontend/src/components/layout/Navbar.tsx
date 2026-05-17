@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import fishEyeLogo from '../../assets/fish-eye-logo.png'
 import './Navbar.css'
@@ -13,17 +13,51 @@ const navLinks = [
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 30)
-    window.addEventListener('scroll', onScroll)
-    return () => window.removeEventListener('scroll', onScroll)
+  const detectTheme = useCallback(() => {
+    setScrolled(window.scrollY > 30)
+
+    // Find which section the navbar overlaps with
+    const navBottom = 70 // navbar height
+    const sections = document.querySelectorAll('[data-nav-theme]')
+    let currentTheme: 'dark' | 'light' = 'dark'
+
+    sections.forEach((section) => {
+      const rect = section.getBoundingClientRect()
+      // If section covers the navbar area
+      if (rect.top <= navBottom && rect.bottom >= 0) {
+        currentTheme = (section.getAttribute('data-nav-theme') as 'dark' | 'light') || 'dark'
+      }
+    })
+
+    setTheme(currentTheme)
   }, [])
 
+  useEffect(() => {
+    const frame = requestAnimationFrame(detectTheme)
+    window.addEventListener('scroll', detectTheme, { passive: true })
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', detectTheme)
+    }
+  }, [detectTheme])
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(detectTheme)
+    return () => cancelAnimationFrame(frame)
+  }, [location.pathname, detectTheme])
+
+  const navClass = [
+    'nav',
+    scrolled ? 'nav--scrolled' : '',
+    theme === 'light' ? 'nav--light' : '',
+  ].filter(Boolean).join(' ')
+
   return (
-    <nav className={`nav ${scrolled ? 'nav--scrolled' : ''}`}>
+    <nav className={navClass}>
       <div className="nav__inner">
         <Link to="/dashboard" className="nav__logo">
           <div className="nav__logo-icon">

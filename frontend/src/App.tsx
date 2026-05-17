@@ -7,6 +7,7 @@ import RegisterPage from './pages/RegisterPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import DashboardPage from './pages/DashboardPage'
 import ScanPage from './pages/ScanPage'
+import RiwayatPage from './pages/RiwayatPage'
 
 function App() {
   const navigate = useNavigate()
@@ -43,7 +44,7 @@ function App() {
       />
       <Route
         path="/riwayat"
-        element={auth ? <ScanPage auth={auth} onLogout={handleLogout} /> : <Navigate to="/login" replace />}
+        element={auth ? <RiwayatPage auth={auth} /> : <Navigate to="/login" replace />}
       />
       <Route path="/artikel" element={auth ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
       <Route path="/profil" element={auth ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
