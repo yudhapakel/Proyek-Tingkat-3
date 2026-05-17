@@ -1,231 +1,228 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Fish, History, LogOut, RefreshCw, Trash2, Upload } from 'lucide-react'
-import type { Analysis, AuthResponse } from '../lib/api'
-import { deleteAnalysis, getAnalysisDetail, getErrorMessage, getHistory, scanFish } from '../lib/api'
+import { useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowRight, Eye, Zap, ShieldCheck, TrendingUp, Award, Clock } from 'lucide-react'
+import Navbar from '../components/layout/Navbar'
+import Footer from '../components/layout/Footer'
+import heroBg from '../assets/underwater-hero-bg.png'
+import freshFishImg from '../assets/fresh-fish.png'
 import './DashboardPage.css'
 
-type DashboardPageProps = {
-  auth: AuthResponse
-  onLogout: () => void
-}
+const features = [
+  {
+    icon: Eye,
+    title: 'Scan Cepat',
+    desc: 'Dapatkan hasil analisis kesegaran ikan hanya dalam hitungan detik menggunakan AI',
+  },
+  {
+    icon: Zap,
+    title: 'Akurasi Tinggi',
+    desc: 'Tingkat akurasi hingga 98% dalam mendeteksi kesegaran dan kualitas ikan',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Data Aman',
+    desc: 'Keamanan data Anda terjamin dengan enkripsi tingkat tinggi dan privasi terlindungi',
+  },
+]
 
-function ScorePill({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="score-pill">
-      <span>{label}</span>
-      <strong>{Number(value || 0).toFixed(1)}</strong>
-    </div>
-  )
-}
+const bubbles = Array.from({ length: 15 }, (_, i) => ({
+  left: `${5 + ((i * 17) % 90)}%`,
+  size: `${8 + ((i * 7) % 16)}px`,
+  delay: `${i * 0.7}s`,
+  duration: `${7 + (i % 6)}s`,
+  drift: `${-18 + ((i * 11) % 36)}px`,
+}))
 
-function ResultCard({ analysis }: { analysis: Analysis | null }) {
-  if (!analysis) {
-    return (
-      <div className="empty-result">
-        <Fish size={44} />
-        <h2>Belum ada hasil scan</h2>
-        <p>Upload foto ikan dulu, nanti skor kualitasnya muncul di sini.</p>
-      </div>
-    )
-  }
+export default function DashboardPage() {
+  const heroContentRef = useRef<HTMLDivElement>(null)
+  const featuresRef = useRef<HTMLElement>(null)
 
-  return (
-    <article className="result-card">
-      <div className="result-card__header">
-        <div>
-          <span className="dashboard-eyebrow">Hasil analisis</span>
-          <h2>{analysis.status}</h2>
-          <p>{analysis.recommendation || 'Belum ada rekomendasi dari backend.'}</p>
-        </div>
-        <div className="overall-score">
-          <strong>{Number(analysis.overall_score || 0).toFixed(1)}</strong>
-          <span>overall</span>
-        </div>
-      </div>
-
-      <div className="score-grid">
-        <ScorePill label="Freshness" value={analysis.freshness_score} />
-        <ScorePill label="Eye" value={analysis.eye_score} />
-        <ScorePill label="Gill" value={analysis.gill_score} />
-        <ScorePill label="Scale" value={analysis.scale_score} />
-        <ScorePill label="Confidence" value={analysis.confidence_score * 100} />
-      </div>
-
-      <div className="model-badge">
-        Model: <strong>{analysis.model_used || 'heuristic_fallback'}</strong>
-      </div>
-    </article>
-  )
-}
-
-export default function DashboardPage({ auth, onLogout }: DashboardPageProps) {
-  const token = auth.access_token
-  const [file, setFile] = useState<File | null>(null)
-  const [latestAnalysis, setLatestAnalysis] = useState<Analysis | null>(null)
-  const [selectedAnalysis, setSelectedAnalysis] = useState<Analysis | null>(null)
-  const [history, setHistory] = useState<Analysis[]>([])
-  const [isScanning, setIsScanning] = useState(false)
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false)
-  const [message, setMessage] = useState('')
-
-  const sortedHistory = useMemo(
-    () => [...history].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-    [history],
-  )
-
-  async function loadHistory() {
-    setIsHistoryLoading(true)
-    setMessage('')
-    try {
-      const data = await getHistory(token)
-      setHistory(data)
-    } catch (error) {
-      setMessage(getErrorMessage(error))
-    } finally {
-      setIsHistoryLoading(false)
-    }
-  }
-
+  // Parallax-lite: content moves slightly on scroll
   useEffect(() => {
-    // Initial load when user enters dashboard.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadHistory()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const onScroll = () => {
+      if (!heroContentRef.current) return
+      const y = window.scrollY
+      heroContentRef.current.style.transform = `translateY(${y * 0.15}px)`
+      heroContentRef.current.style.opacity = `${1 - y / 800}`
+    }
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  async function handleScan(event: React.FormEvent) {
-    event.preventDefault()
-    if (!file) {
-      setMessage('Pilih gambar ikan dulu bro.')
-      return
-    }
-
-    setIsScanning(true)
-    setMessage('')
-    try {
-      const analysis = await scanFish(token, file)
-      setLatestAnalysis(analysis)
-      setFile(null)
-      await loadHistory()
-    } catch (error) {
-      setMessage(getErrorMessage(error))
-    } finally {
-      setIsScanning(false)
-    }
-  }
-
-  async function openDetail(id: number) {
-    setMessage('')
-    try {
-      setSelectedAnalysis(await getAnalysisDetail(token, id))
-    } catch (error) {
-      setMessage(getErrorMessage(error))
-    }
-  }
-
-  async function removeAnalysis(id: number) {
-    setMessage('')
-    try {
-      await deleteAnalysis(token, id)
-      if (latestAnalysis?.id === id) setLatestAnalysis(null)
-      if (selectedAnalysis?.id === id) setSelectedAnalysis(null)
-      await loadHistory()
-    } catch (error) {
-      setMessage(getErrorMessage(error))
-    }
-  }
+  // Scroll reveal for elements
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('revealed')
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.15 }
+    )
+    document.querySelectorAll('.scroll-reveal').forEach((el) => observer.observe(el))
+    return () => observer.disconnect()
+  }, [])
 
   return (
-    <main className="dashboard-page">
-      <section className="dashboard-hero">
-        <div>
-          <span className="dashboard-eyebrow">Fisight Dashboard</span>
-          <h1>Halo, {auth.user.name}</h1>
-          <p>Frontend Naufal sekarang sudah nyambung ke backend auth, scan, dan history.</p>
+    <div className="dashboard">
+      <Navbar />
+
+      {/* Hero Section */}
+      <section className="hero">
+        <div className="hero__bg">
+          <img src={heroBg} alt="" className="hero__bg-img" />
+          <div className="hero__bg-overlay" />
         </div>
-        <button className="dashboard-btn dashboard-btn--ghost" type="button" onClick={onLogout}>
-          <LogOut size={18} /> Logout
-        </button>
-      </section>
 
-      {message && <p className="dashboard-alert">{message}</p>}
+        {/* Floating bubbles */}
+        <div className="hero__bubbles">
+          {bubbles.map((bubble, i) => (
+            <div
+              key={i}
+              className="hero__bubble"
+              style={{
+                '--left': bubble.left,
+                '--size': bubble.size,
+                '--delay': bubble.delay,
+                '--duration': bubble.duration,
+                '--drift': bubble.drift,
+              } as React.CSSProperties}
+            />
+          ))}
+        </div>
 
-      <section className="dashboard-grid">
-        <article className="dashboard-panel upload-panel">
-          <div className="panel-title">
-            <Upload size={22} />
-            <div>
-              <h2>Upload foto ikan</h2>
-              <p>Format yang didukung: JPG, PNG, WebP.</p>
+        <div className="hero__content" ref={heroContentRef}>
+          <h1 className="hero__title anim-fade-up" style={{ animationDelay: '0.2s' }}>
+            Pastikan <span className="hero__title-accent">Kualitas Ikan</span>
+            <br />Dengan Teknologi AI
+          </h1>
+
+          <p className="hero__subtitle anim-fade-up" style={{ animationDelay: '0.5s' }}>
+            Solusi pintar untuk menganalisis kesegaran ikan dengan
+            akurasi tinggi menggunakan teknologi AI terkini
+          </p>
+
+          <div className="hero__row anim-fade-up" style={{ animationDelay: '0.8s' }}>
+            <div className="hero__stat">
+              <span className="hero__stat-value">10K</span>
+              <span className="hero__stat-label">ikan dianalisis</span>
+            </div>
+
+            <Link to="/scan" className="hero__cta">
+              Mulai Sekarang
+              <ArrowRight size={20} />
+            </Link>
+
+            <div className="hero__stat">
+              <span className="hero__stat-value">98%</span>
+              <span className="hero__stat-label">Akurasi AI</span>
             </div>
           </div>
 
-          <form className="scan-form" onSubmit={handleScan}>
-            <label className="scan-dropzone">
-              <span>{file ? file.name : 'Klik untuk pilih gambar'}</span>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                onChange={(event) => setFile(event.target.files?.[0] || null)}
-              />
-            </label>
-            <button className="dashboard-btn dashboard-btn--primary" type="submit" disabled={isScanning}>
-              {isScanning ? 'Scanning...' : 'Upload & scan'}
-            </button>
-          </form>
-        </article>
-
-        <article className="dashboard-panel">
-          <ResultCard analysis={latestAnalysis} />
-        </article>
+          {/* Scroll indicator */}
+          <div className="hero__scroll-indicator anim-fade-up" style={{ animationDelay: '1.2s' }}>
+            <div className="hero__scroll-dot" />
+          </div>
+        </div>
       </section>
 
-      <section className="dashboard-panel history-panel">
-        <div className="history-heading">
-          <div className="panel-title">
-            <History size={22} />
-            <div>
-              <h2>Riwayat analisis</h2>
-              <p>Data diambil dari endpoint backend `/analysis/history`.</p>
+      {/* Wave divider - top */}
+      <div className="wave-divider wave-divider--top">
+        <svg viewBox="0 0 1440 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0,120 L0,60 C240,120 480,0 720,40 C960,80 1200,10 1440,60 L1440,120 Z" fill="#c5e8f0" />
+          <path d="M0,120 L0,80 C320,110 560,30 800,65 C1040,100 1280,40 1440,75 L1440,120 Z" fill="#c5e8f0" opacity="0.5" />
+        </svg>
+      </div>
+
+      {/* Features Section */}
+      <section className="features" ref={featuresRef}>
+        {/* Decorative fish */}
+        <div className="features__deco features__deco--fish-1">🐟</div>
+        <div className="features__deco features__deco--fish-2">🐠</div>
+        <div className="features__deco features__deco--fish-3">🐟</div>
+        <div className="features__deco features__deco--bubble-1" />
+        <div className="features__deco features__deco--bubble-2" />
+        <div className="features__deco features__deco--bubble-3" />
+
+        <h2 className="features__title scroll-reveal">Kenapa Memilih Fisight AI?</h2>
+
+        <div className="features__grid">
+          {features.map((f, i) => (
+            <div
+              key={f.title}
+              className="features__card scroll-reveal"
+              style={{ transitionDelay: `${i * 0.15}s` }}
+            >
+              <div className="features__card-icon">
+                <f.icon size={22} />
+              </div>
+              <h3 className="features__card-title">{f.title}</h3>
+              <p className="features__card-desc">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Wave divider - features to analysis */}
+      <div className="wave-divider wave-divider--mid">
+        <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0,0 C360,80 1080,0 1440,60 L1440,80 L0,80 Z" fill="#085A8C" />
+          <path d="M0,30 C480,70 960,10 1440,50 L1440,80 L0,80 Z" fill="#085A8C" opacity="0.7" />
+        </svg>
+      </div>
+
+      {/* Analysis Section */}
+      <section className="analysis">
+        <div className="analysis__deco analysis__deco--fish-1">🐟</div>
+        <div className="analysis__deco analysis__deco--fish-2">🐠</div>
+        <div className="analysis__deco analysis__deco--bubble-1" />
+        <div className="analysis__deco analysis__deco--bubble-2" />
+
+        <div className="analysis__inner">
+          <div className="analysis__text scroll-reveal">
+            <span className="analysis__badge">TEKNOLOGI</span>
+            <h2 className="analysis__title">
+              Analisis Mendalam Dengan Kecerdasan Buatan
+            </h2>
+            <p className="analysis__desc">
+              Sistem AI kami menggunakan deep learning untuk menganalisis berbagai aspek
+              kesegaran ikan, mulai dari warna, tekstur, hingga kondisi mata dan insang.
+            </p>
+
+            <div className="analysis__list">
+              <div className="analysis__item scroll-reveal" style={{ transitionDelay: '0.1s' }}>
+                <div className="analysis__item-icon"><TrendingUp size={18} /></div>
+                <span>Akurasi tinggi</span>
+              </div>
+              <div className="analysis__item scroll-reveal" style={{ transitionDelay: '0.2s' }}>
+                <div className="analysis__item-icon"><Award size={18} /></div>
+                <span>Sertifikat kualitas</span>
+              </div>
+              <div className="analysis__item scroll-reveal" style={{ transitionDelay: '0.3s' }}>
+                <div className="analysis__item-icon"><Clock size={18} /></div>
+                <span>Analisis instan</span>
+              </div>
             </div>
           </div>
-          <button className="dashboard-btn dashboard-btn--ghost" type="button" onClick={loadHistory} disabled={isHistoryLoading}>
-            <RefreshCw size={16} /> {isHistoryLoading ? 'Loading...' : 'Refresh'}
-          </button>
-        </div>
 
-        {sortedHistory.length === 0 ? (
-          <p className="history-empty">Belum ada history buat akun ini.</p>
-        ) : (
-          <div className="history-list">
-            {sortedHistory.map((item) => (
-              <article className="history-item" key={item.id}>
-                <div>
-                  <strong>{item.status}</strong>
-                  <p>{item.filename || `Analisis #${item.id}`}</p>
-                  <small>{new Date(item.created_at).toLocaleString('id-ID')}</small>
-                </div>
-                <span className="history-score">{Number(item.overall_score || 0).toFixed(1)}</span>
-                <div className="history-actions">
-                  <button type="button" onClick={() => openDetail(item.id)}>Detail</button>
-                  <button className="danger" type="button" onClick={() => removeAnalysis(item.id)}>
-                    <Trash2 size={15} /> Delete
-                  </button>
-                </div>
-              </article>
-            ))}
+          <div className="analysis__image scroll-reveal" style={{ transitionDelay: '0.15s' }}>
+            <img src={freshFishImg} alt="Fresh fish analysis" />
           </div>
-        )}
+        </div>
       </section>
 
-      {selectedAnalysis && (
-        <div className="modal-backdrop" role="presentation" onClick={() => setSelectedAnalysis(null)}>
-          <section className="dashboard-panel detail-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-            <button className="modal-close" type="button" onClick={() => setSelectedAnalysis(null)}>×</button>
-            <ResultCard analysis={selectedAnalysis} />
-          </section>
-        </div>
-      )}
-    </main>
+      {/* Wave divider - bottom */}
+      <div className="wave-divider wave-divider--bottom">
+        <svg viewBox="0 0 1440 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M0,0 L0,60 C240,0 480,120 720,80 C960,40 1200,110 1440,60 L1440,0 Z" fill="#c5e8f0" />
+          <path d="M0,0 L0,40 C320,10 560,90 800,55 C1040,20 1280,80 1440,45 L1440,0 Z" fill="#c5e8f0" opacity="0.5" />
+        </svg>
+      </div>
+
+      <Footer />
+    </div>
   )
 }

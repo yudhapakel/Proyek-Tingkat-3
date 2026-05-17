@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import DashboardPage from './pages/DashboardPage'
+import ScanPage from './pages/ScanPage'
 
 function App() {
   const navigate = useNavigate()
@@ -34,8 +35,18 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route
         path="/dashboard"
-        element={auth ? <DashboardPage auth={auth} onLogout={handleLogout} /> : <Navigate to="/login" replace />}
+        element={auth ? <DashboardPage /> : <Navigate to="/login" replace />}
       />
+      <Route
+        path="/scan"
+        element={auth ? <ScanPage auth={auth} onLogout={handleLogout} /> : <Navigate to="/login" replace />}
+      />
+      <Route
+        path="/riwayat"
+        element={auth ? <ScanPage auth={auth} onLogout={handleLogout} /> : <Navigate to="/login" replace />}
+      />
+      <Route path="/artikel" element={auth ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
+      <Route path="/profil" element={auth ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to={auth ? '/dashboard' : '/login'} replace />} />
     </Routes>
   )
