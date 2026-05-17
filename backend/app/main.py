@@ -237,6 +237,12 @@ async def scan_ikan(
     saved_path.write_bytes(image_bytes)
 
     result = analyze_fish_image(image_bytes)
+    if not result.get("is_valid_fish", True):
+        saved_path.unlink(missing_ok=True)
+        raise HTTPException(
+            status_code=400,
+            detail=result.get("validation_message", "Gambar tidak cukup terdeteksi sebagai ikan. Upload foto ikan yang jelas."),
+        )
 
     analysis = models.FishAnalysis(
         user_id=current_user.id,
