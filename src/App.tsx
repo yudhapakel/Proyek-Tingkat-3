@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage'
 import ScanPage from './pages/ScanPage'
 import RiwayatPage from './pages/RiwayatPage'
 import ArtikelPage from './pages/ArtikelPage'
+import ProfilePage from './pages/ProfilePage'
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
       <Route path="/scan" element={<ScanPage />} />
       <Route path="/riwayat" element={<RiwayatPage />} />
       <Route path="/artikel" element={<ArtikelPage />} />
+      <Route path="/profil" element={<ProfilePage />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )
