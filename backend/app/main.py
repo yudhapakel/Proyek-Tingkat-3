@@ -211,6 +211,22 @@ def get_article_detail(slug: str, db: Session = Depends(get_db)):
     return article
 
 
+
+
+def _infer_fish_type(filename: str | None) -> str:
+    """Infer demo fish type from upload filename when the AI model only classifies quality."""
+    normalized = (filename or "").lower().replace("_", " ").replace("-", " ")
+    fish_aliases = {
+        "Mujaer": ["mujaer", "mujair"],
+        "Gurame": ["gurame", "gurami"],
+        "Tongkol": ["tongkol"],
+    }
+    for fish_name, aliases in fish_aliases.items():
+        if any(alias in normalized for alias in aliases):
+            return f"Ikan {fish_name}"
+    return "Ikan"
+
+
 def _validate_image(file: UploadFile) -> None:
     allowed_content_types = {"image/jpeg", "image/png", "image/webp"}
     if file.content_type not in allowed_content_types:
@@ -248,7 +264,7 @@ async def scan_ikan(
         user_id=current_user.id,
         filename=file.filename,
         image_url=f"/uploads/{saved_filename}",
-        fish_type=result.get("fish_type", "Tidak diketahui"),
+        fish_type=_infer_fish_type(file.filename) if result.get("fish_type") == "Ikan" else result.get("fish_type", "Ikan"),
         overall_score=float(result.get("overall_score", 0)),
         freshness_score=float(result.get("freshness_score", 0)),
         eye_score=float(result.get("eye_score", 0)),

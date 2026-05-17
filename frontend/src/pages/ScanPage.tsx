@@ -53,21 +53,40 @@ function imageUrl(path: string | null) {
   return `${API_BASE_URL}${path}`
 }
 
+function detailDescription(label: string, score: number) {
+  const status = scoreStatus(score)
+  const condition = status === 'Baik' ? 'baik' : status === 'Sedang' ? 'cukup baik' : 'perlu diperhatikan'
+  if (label === 'Kesegaran Umum') return `Kesegaran ikan berada pada kondisi ${condition}.`
+  if (label === 'Kondisi Mata') return `Kondisi mata ikan terlihat ${condition} berdasarkan hasil analisis gambar.`
+  if (label === 'Kondisi Sisik') return `Kondisi sisik ikan terlihat ${condition} berdasarkan hasil analisis gambar.`
+  return `Kondisi insang ikan terlihat ${condition} berdasarkan hasil analisis gambar.`
+}
+
+function displayFishName(analysis: Analysis) {
+  const type = analysis.fish_type?.trim()
+  if (type && type !== 'Ikan') return type
+  const filename = analysis.filename?.toLowerCase() || ''
+  if (filename.includes('mujaer') || filename.includes('mujair')) return 'Ikan Mujaer'
+  if (filename.includes('gurame') || filename.includes('gurami')) return 'Ikan Gurame'
+  if (filename.includes('tongkol')) return 'Ikan Tongkol'
+  return 'Ikan'
+}
+
 function mapAnalysisToResult(analysis: Analysis, fallbackImage?: string): ScanResult {
   const overall = Math.round(Number(analysis.overall_score || 0))
   return {
     id: analysis.id,
-    fishName: analysis.fish_type || analysis.filename || 'Ikan',
+    fishName: displayFishName(analysis),
     overallScore: overall,
     quality: qualityLabel(analysis.status, overall),
     summary: analysis.recommendation || `Hasil analisis menunjukkan kualitas ${analysis.status || scoreStatus(overall)} dengan skor ${overall}/100.`,
     image: imageUrl(analysis.image_url) || fallbackImage || '',
     createdAt: analysis.created_at,
     details: [
-      { label: 'Kesegaran Umum', score: Math.round(Number(analysis.freshness_score || 0)), status: scoreStatus(analysis.freshness_score), desc: 'Skor kesegaran dari backend AI Fisight.' },
-      { label: 'Kondisi Mata', score: Math.round(Number(analysis.eye_score || 0)), status: scoreStatus(analysis.eye_score), desc: 'Estimasi kondisi mata berdasarkan analisis visual.' },
-      { label: 'Kondisi Sisik', score: Math.round(Number(analysis.scale_score || 0)), status: scoreStatus(analysis.scale_score), desc: 'Estimasi kondisi sisik/permukaan ikan.' },
-      { label: 'Kondisi Insang', score: Math.round(Number(analysis.gill_score || 0)), status: scoreStatus(analysis.gill_score), desc: 'Estimasi kondisi insang dari backend AI.' },
+      { label: 'Kesegaran Umum', score: Math.round(Number(analysis.freshness_score || 0)), status: scoreStatus(analysis.freshness_score), desc: detailDescription('Kesegaran Umum', analysis.freshness_score) },
+      { label: 'Kondisi Mata', score: Math.round(Number(analysis.eye_score || 0)), status: scoreStatus(analysis.eye_score), desc: detailDescription('Kondisi Mata', analysis.eye_score) },
+      { label: 'Kondisi Sisik', score: Math.round(Number(analysis.scale_score || 0)), status: scoreStatus(analysis.scale_score), desc: detailDescription('Kondisi Sisik', analysis.scale_score) },
+      { label: 'Kondisi Insang', score: Math.round(Number(analysis.gill_score || 0)), status: scoreStatus(analysis.gill_score), desc: detailDescription('Kondisi Insang', analysis.gill_score) },
     ],
   }
 }

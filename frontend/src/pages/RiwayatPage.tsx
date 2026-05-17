@@ -64,12 +64,31 @@ function formatDate(value: string | null | undefined) {
   })
 }
 
+function detailDescription(label: string, score: number) {
+  const status = scoreStatus(score)
+  const condition = status === 'Baik' ? 'baik' : status === 'Sedang' ? 'cukup baik' : 'perlu diperhatikan'
+  if (label === 'Kesegaran Umum') return `Kesegaran ikan berada pada kondisi ${condition}.`
+  if (label === 'Kondisi Mata') return `Kondisi mata ikan terlihat ${condition} berdasarkan hasil analisis gambar.`
+  if (label === 'Kondisi Sisik') return `Kondisi sisik ikan terlihat ${condition} berdasarkan hasil analisis gambar.`
+  return `Kondisi insang ikan terlihat ${condition} berdasarkan hasil analisis gambar.`
+}
+
+function displayFishName(item: Analysis) {
+  const type = item.fish_type?.trim()
+  if (type && type !== 'Ikan') return type
+  const filename = item.filename?.toLowerCase() || ''
+  if (filename.includes('mujaer') || filename.includes('mujair')) return 'Ikan Mujaer'
+  if (filename.includes('gurame') || filename.includes('gurami')) return 'Ikan Gurame'
+  if (filename.includes('tongkol')) return 'Ikan Tongkol'
+  return 'Ikan'
+}
+
 function mapAnalysis(item: Analysis): HistoryItem {
   const score = Math.round(Number(item.overall_score || 0))
   const status = scoreStatus(score)
   return {
     id: String(item.id),
-    name: item.fish_type || item.filename || `Analisis #${item.id}`,
+    name: displayFishName(item),
     image: imageUrl(item.image_url),
     date: formatDate(item.created_at),
     status,
@@ -78,10 +97,10 @@ function mapAnalysis(item: Analysis): HistoryItem {
     summary: item.recommendation || `Hasil analisis menunjukkan kualitas ${item.status || status} dengan skor ${score}/100.`,
     createdAt: item.created_at,
     details: [
-      { label: 'Kesegaran Umum', score: Math.round(Number(item.freshness_score || 0)), status: scoreStatus(item.freshness_score), desc: 'Skor kesegaran dari backend AI Fisight.' },
-      { label: 'Kondisi Mata', score: Math.round(Number(item.eye_score || 0)), status: scoreStatus(item.eye_score), desc: 'Estimasi kondisi mata berdasarkan analisis visual.' },
-      { label: 'Kondisi Sisik', score: Math.round(Number(item.scale_score || 0)), status: scoreStatus(item.scale_score), desc: 'Estimasi kondisi sisik/permukaan ikan.' },
-      { label: 'Kondisi Insang', score: Math.round(Number(item.gill_score || 0)), status: scoreStatus(item.gill_score), desc: 'Estimasi kondisi insang dari backend AI.' },
+      { label: 'Kesegaran Umum', score: Math.round(Number(item.freshness_score || 0)), status: scoreStatus(item.freshness_score), desc: detailDescription('Kesegaran Umum', item.freshness_score) },
+      { label: 'Kondisi Mata', score: Math.round(Number(item.eye_score || 0)), status: scoreStatus(item.eye_score), desc: detailDescription('Kondisi Mata', item.eye_score) },
+      { label: 'Kondisi Sisik', score: Math.round(Number(item.scale_score || 0)), status: scoreStatus(item.scale_score), desc: detailDescription('Kondisi Sisik', item.scale_score) },
+      { label: 'Kondisi Insang', score: Math.round(Number(item.gill_score || 0)), status: scoreStatus(item.gill_score), desc: detailDescription('Kondisi Insang', item.gill_score) },
     ],
   }
 }
@@ -182,7 +201,7 @@ export default function RiwayatPage({ auth }: RiwayatPageProps) {
           </div>
 
           <p className="riwayat-count">
-            {loading ? 'Memuat riwayat dari backend...' : `Menampilkan ${filtered.length} dari ${history.length} hasil`}
+            {loading ? 'Memuat riwayat scan...' : `Menampilkan ${filtered.length} dari ${history.length} hasil`}
           </p>
 
           {error && (
