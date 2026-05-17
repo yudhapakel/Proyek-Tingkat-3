@@ -15,7 +15,9 @@ except Exception:  # pragma: no cover - optional heavy AI dependency
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_MODEL_PATH = PROJECT_ROOT / "backend" / "models" / "fish_quality_mobilenetv2.pt"
+DEFAULT_SPECIES_MODEL_PATH = PROJECT_ROOT / "backend" / "models" / "fish_species_mobilenetv2.pt"
 MODEL_PATH = Path(os.getenv("FISIGHT_AI_MODEL_PATH", DEFAULT_MODEL_PATH))
+SPECIES_MODEL_PATH = Path(os.getenv("FISIGHT_SPECIES_MODEL_PATH", DEFAULT_SPECIES_MODEL_PATH))
 DEFAULT_CLASS_NAMES = ["buruk", "sedang", "baik"]
 LOW_CONFIDENCE_THRESHOLD = float(os.getenv("FISIGHT_LOW_CONFIDENCE_THRESHOLD", "0.65"))
 NON_FISH_TOP1_REJECT_THRESHOLD = float(os.getenv("FISIGHT_NON_FISH_TOP1_REJECT_THRESHOLD", "0.45"))
@@ -29,6 +31,9 @@ _model_source = "heuristic"
 _imagenet_model = None
 _imagenet_preprocess = None
 _imagenet_categories: list[str] = []
+_species_model = None
+_species_preprocess = None
+_species_class_names: list[str] = []
 
 FISH_IMAGENET_KEYWORDS = {
     "fish",
@@ -141,6 +146,66 @@ def _validate_fish_like_image(image: Image.Image, custom_confidence: float | Non
         "is_valid_fish": True,
         "fish_validation_score": round(fish_probability, 4),
         "fish_validation_labels": labels[:5],
+    }
+
+
+
+def _load_species_model():
+    global _species_model, _species_preprocess, _species_class_names
+    if torch is None or models is None or transforms is None:
+        return None, None
+    if not SPECIES_MODEL_PATH.exists():
+        return None, None
+
+    if _species_model is None or _species_preprocess is None:
+        checkpoint: dict[str, Any] = torch.load(SPECIES_MODEL_PATH, map_location="cpu")
+        class_names = checkpoint.get("class_names", [])
+        model = _build_mobilenet_classifier(len(class_names))
+        model.load_state_dict(checkpoint["model_state_dict"])
+        model.eval()
+
+        _species_model = model
+        _species_class_names = list(class_names)
+        _species_preprocess = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+    return _species_model, _species_preprocess
+
+
+def _format_species_name(label: str) -> str:
+    normalized = label.strip().lower().replace("_", " ").replace("-", " ")
+    names = {
+        "mujair": "Ikan Mujair",
+        "nila": "Ikan Mujair",
+        "tilapia": "Ikan Mujair",
+        "gurame": "Ikan Gurame",
+        "gurami": "Ikan Gurame",
+        "gourami": "Ikan Gurame",
+        "tongkol": "Ikan Tongkol",
+        "tuna": "Ikan Tongkol",
+    }
+    return names.get(normalized, f"Ikan {label.strip().title()}" if label else "Ikan")
+
+
+def _predict_fish_species(image: Image.Image) -> dict[str, Any]:
+    model, preprocess = _load_species_model()
+    if model is None or preprocess is None or torch is None:
+        return {"fish_type": "Ikan", "species_confidence_score": None, "species_model_used": None}
+
+    input_tensor = preprocess(image).unsqueeze(0)
+    with torch.no_grad():
+        output = model(input_tensor)
+        probabilities = torch.nn.functional.softmax(output[0], dim=0)
+        confidence, predicted_idx = torch.max(probabilities, dim=0)
+
+    raw_label = _species_class_names[int(predicted_idx.item())]
+    return {
+        "fish_type": _format_species_name(raw_label),
+        "species_confidence_score": round(float(confidence.item()), 4),
+        "species_model_used": "fish_species_mobilenetv2",
     }
 
 
@@ -294,9 +359,12 @@ def _analyze_with_custom_model(image: Image.Image, heuristic_scores: dict[str, f
 def analyze_fish_image(image_bytes: bytes):
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     heuristic_scores = _estimate_quality_scores(image)
+    species_result = _predict_fish_species(image)
 
     model_result = _analyze_with_custom_model(image, heuristic_scores)
     if model_result is not None:
+        if model_result.get("is_valid_fish", True):
+            model_result.update(species_result)
         return model_result
 
     fish_validation = _validate_fish_like_image(image)
@@ -307,7 +375,7 @@ def analyze_fish_image(image_bytes: bytes):
     status = _status_from_score(overall_score)
 
     return {
-        "fish_type": "Ikan",
+        "fish_type": species_result.get("fish_type", "Ikan"),
         "status": status,
         "confidence_score": 0.75,
         "freshness_score": heuristic_scores["freshness_score"],
@@ -317,5 +385,6 @@ def analyze_fish_image(image_bytes: bytes):
         "overall_score": overall_score,
         "recommendation": _status_recommendation(status),
         "model_used": "heuristic_fallback",
+        **species_result,
         **fish_validation,
     }

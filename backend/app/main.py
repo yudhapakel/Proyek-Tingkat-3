@@ -264,7 +264,7 @@ async def scan_ikan(
         user_id=current_user.id,
         filename=file.filename,
         image_url=f"/uploads/{saved_filename}",
-        fish_type=_infer_fish_type(file.filename) if result.get("fish_type") == "Ikan" else result.get("fish_type", "Ikan"),
+        fish_type=result.get("fish_type") if result.get("fish_type") != "Ikan" else _infer_fish_type(file.filename),
         overall_score=float(result.get("overall_score", 0)),
         freshness_score=float(result.get("freshness_score", 0)),
         eye_score=float(result.get("eye_score", 0)),

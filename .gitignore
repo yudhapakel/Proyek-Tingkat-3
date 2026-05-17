@@ -14,3 +14,8 @@ backend/datasets/fish_quality/sedang/*
 !backend/datasets/fish_quality/sedang/.gitkeep
 backend/datasets/fish_quality/buruk/*
 !backend/datasets/fish_quality/buruk/.gitkeep
+backend/datasets/fish_species/*
+!backend/datasets/fish_species/.gitkeep
+!backend/datasets/fish_species/*/
+backend/datasets/fish_species/*/*
+!backend/datasets/fish_species/*/.gitkeep
