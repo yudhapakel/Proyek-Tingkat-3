@@ -8,6 +8,8 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import DashboardPage from './pages/DashboardPage'
 import ScanPage from './pages/ScanPage'
 import RiwayatPage from './pages/RiwayatPage'
+import ArtikelPage from './pages/ArtikelPage'
+import ProfilePage from './pages/ProfilePage'
 
 function App() {
   const navigate = useNavigate()
@@ -46,8 +48,14 @@ function App() {
         path="/riwayat"
         element={auth ? <RiwayatPage auth={auth} /> : <Navigate to="/login" replace />}
       />
-      <Route path="/artikel" element={auth ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
-      <Route path="/profil" element={auth ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
+      <Route
+        path="/artikel"
+        element={auth ? <ArtikelPage /> : <Navigate to="/login" replace />}
+      />
+      <Route
+        path="/profil"
+        element={auth ? <ProfilePage auth={auth} onLogout={handleLogout} /> : <Navigate to="/login" replace />}
+      />
       <Route path="*" element={<Navigate to={auth ? '/dashboard' : '/login'} replace />} />
     </Routes>
   )
