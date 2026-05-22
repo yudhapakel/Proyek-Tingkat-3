@@ -236,6 +236,107 @@
 .riwayat-card__bar-fill--sedang { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
 .riwayat-card__bar-fill--buruk { background: linear-gradient(90deg, #ef4444, #f87171); }
 
+
+.riwayat-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.riwayat-card__top .riwayat-card__name {
+  margin-bottom: 0;
+}
+
+.riwayat-card__delete {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid #fee2e2;
+  border-radius: 10px;
+  color: #ef4444;
+  background: #fff7f7;
+  cursor: pointer;
+  transition: transform 180ms, background 180ms, color 180ms, border-color 180ms;
+}
+
+.riwayat-card__delete:hover:not(:disabled) {
+  transform: translateY(-1px);
+  color: #fff;
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+.riwayat-card__delete:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.riwayat-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.riwayat-pagination__btn,
+.riwayat-pagination__page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 38px;
+  border: 1.5px solid #dbeafe;
+  border-radius: 10px;
+  color: #0f766e;
+  background: #f8fafc;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 180ms, color 180ms, border-color 180ms, transform 180ms;
+}
+
+.riwayat-pagination__btn {
+  padding: 0 0.9rem;
+}
+
+.riwayat-pagination__pages {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.riwayat-pagination__page {
+  width: 38px;
+}
+
+.riwayat-pagination__btn:hover:not(:disabled),
+.riwayat-pagination__page:hover:not(.riwayat-pagination__page--active) {
+  transform: translateY(-1px);
+  background: #ccfbf1;
+  border-color: #99f6e4;
+}
+
+.riwayat-pagination__page--active {
+  color: #fff;
+  background: #0d9488;
+  border-color: #0d9488;
+}
+
+.riwayat-pagination__btn:disabled {
+  cursor: not-allowed;
+  color: #94a3b8;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
 /* Empty state */
 .riwayat-empty {
   text-align: center;

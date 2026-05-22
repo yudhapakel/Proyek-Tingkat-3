@@ -291,9 +291,10 @@ def _status_recommendation(status: str, *, low_confidence: bool = False) -> str:
 
 
 def _status_from_score(overall_score: float) -> str:
-    if overall_score >= 75:
+    # Keep backend status thresholds aligned with the frontend badges/gauge.
+    if overall_score >= 70:
         return "Baik"
-    if overall_score >= 60:
+    if overall_score >= 40:
         return "Sedang"
     return "Buruk"
 
@@ -332,8 +333,13 @@ def _analyze_with_custom_model(image: Image.Image, heuristic_scores: dict[str, f
     raw_status = _class_names[int(predicted_idx.item())]
     predicted_status = _normalize_status(raw_status)
     low_confidence = confidence_score < LOW_CONFIDENCE_THRESHOLD
-    status = "Sedang" if low_confidence else predicted_status
-    overall_score = _score_from_status(status, confidence_score, heuristic_scores["overall_score"])
+    if low_confidence:
+        # When the classifier is unsure, prefer the visual/heuristic score so the
+        # overall label stays consistent with the detailed metrics shown in the UI.
+        overall_score = heuristic_scores["overall_score"]
+    else:
+        overall_score = _score_from_status(predicted_status, confidence_score, heuristic_scores["overall_score"])
+    status = _status_from_score(overall_score)
 
     # Keep detailed metric fields available for the current frontend. The trained classifier
     # predicts overall quality class; detailed sub-scores are estimated from image statistics.

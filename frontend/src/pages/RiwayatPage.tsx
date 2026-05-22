@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Clock } from 'lucide-react'
+import { Search, Clock, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import type { Analysis, AuthResponse } from '../lib/api'
-import { API_BASE_URL, getErrorMessage, getHistory } from '../lib/api'
+import { API_BASE_URL, deleteAnalysis, getErrorMessage, getHistory } from '../lib/api'
 import './RiwayatPage.css'
 
 type Status = 'Baik' | 'Sedang' | 'Buruk'
 type Filter = 'Semua' | Status
+
+const ITEMS_PER_PAGE = 20
 
 interface DetailScore {
   label: string
@@ -111,6 +113,8 @@ export default function RiwayatPage({ auth }: RiwayatPageProps) {
   const [history, setHistory] = useState<HistoryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -138,6 +142,13 @@ export default function RiwayatPage({ auth }: RiwayatPageProps) {
     return matchSearch && matchFilter
   }), [filter, history, search])
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
+  const activePage = Math.min(currentPage, totalPages)
+  const paginated = useMemo(() => {
+    const start = (activePage - 1) * ITEMS_PER_PAGE
+    return filtered.slice(start, start + ITEMS_PER_PAGE)
+  }, [activePage, filtered])
+
   const handleCardClick = (item: HistoryItem) => {
     navigate('/scan', {
       state: {
@@ -153,6 +164,23 @@ export default function RiwayatPage({ auth }: RiwayatPageProps) {
         }
       }
     })
+  }
+
+  const handleDelete = async (event: MouseEvent<HTMLButtonElement>, item: HistoryItem) => {
+    event.stopPropagation()
+    const confirmed = window.confirm(`Hapus riwayat scan ${item.name}?`)
+    if (!confirmed) return
+
+    setDeletingId(item.id)
+    setError('')
+    try {
+      await deleteAnalysis(auth.access_token, Number(item.id))
+      setHistory((prev) => prev.filter((historyItem) => historyItem.id !== item.id))
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   const filters: Filter[] = ['Semua', 'Baik', 'Sedang', 'Buruk']
@@ -183,7 +211,10 @@ export default function RiwayatPage({ auth }: RiwayatPageProps) {
                 type="text"
                 placeholder="Cari nama ikan..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value)
+                  setCurrentPage(1)
+                }}
                 className="riwayat-search__input"
               />
             </div>
@@ -192,7 +223,10 @@ export default function RiwayatPage({ auth }: RiwayatPageProps) {
                 <button
                   key={f}
                   className={`riwayat-filter ${filter === f ? 'riwayat-filter--active' : ''}`}
-                  onClick={() => setFilter(f)}
+                  onClick={() => {
+                    setFilter(f)
+                    setCurrentPage(1)
+                  }}
                 >
                   {f}
                 </button>
@@ -201,7 +235,7 @@ export default function RiwayatPage({ auth }: RiwayatPageProps) {
           </div>
 
           <p className="riwayat-count">
-            {loading ? 'Memuat riwayat scan...' : `Menampilkan ${filtered.length} dari ${history.length} hasil`}
+            {loading ? 'Memuat riwayat scan...' : `Menampilkan ${paginated.length} dari ${filtered.length} hasil (halaman ${activePage}/${totalPages})`}
           </p>
 
           {error && (
@@ -211,13 +245,25 @@ export default function RiwayatPage({ auth }: RiwayatPageProps) {
           )}
 
           <div className="riwayat-grid">
-            {filtered.map((item) => (
+            {paginated.map((item) => (
               <div key={item.id} className="riwayat-card" onClick={() => handleCardClick(item)}>
                 <div className="riwayat-card__image">
                   {item.image ? <img src={item.image} alt={item.name} /> : <div className="riwayat-empty"><p>Tanpa gambar</p></div>}
                 </div>
                 <div className="riwayat-card__body">
-                  <h3 className="riwayat-card__name">{item.name}</h3>
+                  <div className="riwayat-card__top">
+                    <h3 className="riwayat-card__name">{item.name}</h3>
+                    <button
+                      type="button"
+                      className="riwayat-card__delete"
+                      onClick={(event) => void handleDelete(event, item)}
+                      disabled={deletingId === item.id}
+                      aria-label={`Hapus riwayat ${item.name}`}
+                      title="Hapus riwayat"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                   <div className="riwayat-card__meta">
                     <span className="riwayat-card__date">{item.date}</span>
                     <span className={`riwayat-card__status riwayat-card__status--${item.status.toLowerCase()}`}>
@@ -234,6 +280,44 @@ export default function RiwayatPage({ auth }: RiwayatPageProps) {
               </div>
             ))}
           </div>
+
+
+          {!loading && !error && filtered.length > ITEMS_PER_PAGE && (
+            <div className="riwayat-pagination">
+              <button
+                type="button"
+                className="riwayat-pagination__btn"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={activePage === 1}
+              >
+                <ChevronLeft size={16} />
+                Sebelumnya
+              </button>
+
+              <div className="riwayat-pagination__pages">
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    className={`riwayat-pagination__page ${activePage === page ? 'riwayat-pagination__page--active' : ''}`}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                className="riwayat-pagination__btn"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={activePage === totalPages}
+              >
+                Berikutnya
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
 
           {!loading && !error && filtered.length === 0 && (
             <div className="riwayat-empty">
