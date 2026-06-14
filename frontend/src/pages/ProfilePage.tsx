@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
-import { LogOut } from 'lucide-react'
+import { LogOut, Loader2 } from 'lucide-react'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
-import type { AuthResponse } from '../lib/api'
+import { type AuthResponse, updateProfile, getErrorMessage } from '../lib/api'
+import { saveAuth } from '../lib/auth'
 import './ProfilePage.css'
 
 interface ProfilePageProps {
@@ -17,6 +18,8 @@ export default function ProfilePage({ auth, onLogout }: ProfilePageProps) {
     noTelfon: '',
   })
   const [message, setMessage] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [isError, setIsError] = useState(false)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -48,10 +51,28 @@ export default function ProfilePage({ auth, onLogout }: ProfilePageProps) {
     setMessage('')
   }
 
-  const handleSave = () => {
-    // Backend endpoint for updating profile is not available yet, so keep this as
-    // a frontend-only confirmation for now.
-    setMessage('Perubahan profil tersimpan sementara di halaman ini. Endpoint update profil belum tersedia.')
+  const handleSave = async () => {
+    setIsSaving(true)
+    setMessage('')
+    setIsError(false)
+    try {
+      const updatedUser = await updateProfile(auth.access_token, {
+        name: formData.nama,
+        email: formData.email,
+      })
+      const newAuth = {
+        ...auth,
+        user: updatedUser,
+      }
+      saveAuth(newAuth)
+      window.dispatchEvent(new CustomEvent('fisight-authenticated', { detail: newAuth }))
+      setMessage('Profil berhasil diperbarui, bre! Mantap.')
+    } catch (err) {
+      setIsError(true)
+      setMessage(getErrorMessage(err))
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -112,9 +133,22 @@ export default function ProfilePage({ auth, onLogout }: ProfilePageProps) {
                 />
               </div>
 
-              {message && <p className="profile-message">{message}</p>}
+              {message && (
+                <p className={isError ? 'profile-message profile-message--error' : 'profile-message'}>
+                  {message}
+                </p>
+              )}
 
-              <button type="button" className="btn-simpan" onClick={handleSave}>Simpan</button>
+              <button type="button" className="btn-simpan" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin mr-2 inline" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  'Simpan'
+                )}
+              </button>
             </div>
 
             <hr className="profile-divider" />

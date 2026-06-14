@@ -100,3 +100,49 @@ def test_login_invalid_password(client):
     response = client.post("/auth/login", json=payload_login)
     assert response.status_code == 401
     assert response.json()["detail"] == "Email atau password salah"
+
+
+def test_update_profile_success(client):
+    payload_register = {
+        "name": "Yudha Old Name",
+        "email": "yudhaold@example.com",
+        "password": "password123",
+    }
+    reg_resp = client.post("/auth/register", json=payload_register)
+    assert reg_resp.status_code == 201
+    token = reg_resp.json()["access_token"]
+
+    headers = {"Authorization": f"Bearer {token}"}
+    update_payload = {
+        "name": "Yudha New Name",
+        "email": "yudhanew@example.com",
+    }
+    response = client.put("/users/me", json=update_payload, headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "Yudha New Name"
+    assert data["email"] == "yudhanew@example.com"
+
+
+def test_update_profile_duplicate_email(client):
+    # Register first user
+    client.post("/auth/register", json={
+        "name": "User One",
+        "email": "one@example.com",
+        "password": "password123",
+    })
+    # Register second user
+    reg_resp2 = client.post("/auth/register", json={
+        "name": "User Two",
+        "email": "two@example.com",
+        "password": "password123",
+    })
+    token2 = reg_resp2.json()["access_token"]
+
+    headers = {"Authorization": f"Bearer {token2}"}
+    update_payload = {
+        "email": "one@example.com",
+    }
+    response = client.put("/users/me", json=update_payload, headers=headers)
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Email sudah terdaftar"

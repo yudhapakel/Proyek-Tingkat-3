@@ -110,3 +110,12 @@ export function deleteAnalysis(token: string, id: number) {
     token,
   })
 }
+
+export function updateProfile(token: string, data: { name?: string; email?: string; password?: string }) {
+  return apiRequest<User>('/users/me', {
+    method: 'PUT',
+    token,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+}

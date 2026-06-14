@@ -276,18 +276,12 @@ def _normalize_status(label: str) -> str:
 
 
 def _status_recommendation(status: str, *, low_confidence: bool = False) -> str:
-    if low_confidence:
-        return (
-            "Model belum cukup yakin dengan hasil scan ini. "
-            "Lakukan pemeriksaan manual atau gunakan foto ikan yang lebih jelas."
-        )
-
     canonical_status = _normalize_status(status)
     if canonical_status == "Baik":
-        return "Ikan layak dipasarkan. Tetap simpan pada suhu dingin agar kualitas terjaga."
+        return "Kualitas ikan tergolong baik. Ikan layak dipasarkan. Tetap simpan pada suhu dingin agar kualitas terjaga."
     if canonical_status == "Sedang":
-        return "Ikan masih dapat diproses, tetapi perlu penanganan cepat dan penyimpanan dingin."
-    return "Kualitas ikan rendah. Perlu pemeriksaan manual sebelum dipasarkan."
+        return "Kualitas ikan tergolong sedang. Ikan masih dapat diproses, tetapi perlu penanganan cepat dan penyimpanan dingin."
+    return "Kualitas ikan rendah/buruk. Perlu pemeriksaan manual sebelum dipasarkan."
 
 
 def _status_from_score(overall_score: float) -> str:

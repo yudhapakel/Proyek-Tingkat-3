@@ -147,6 +147,10 @@
   font-weight: 600;
 }
 
+.profile-message--error {
+  color: #ef4444;
+}
+
 .profile-actions {
   display: flex;
   justify-content: flex-start;

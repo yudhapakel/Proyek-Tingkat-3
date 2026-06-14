@@ -473,12 +473,25 @@ export default function ScanPage({ auth }: ScanPageProps) {
                     />
                   </svg>
                   <div className="result-gauge__value">
-                    <span className="result-gauge__number">{result.overallScore}</span>
+                    <span
+                      className="result-gauge__number"
+                      style={{
+                        color: result.overallScore >= 70 ? '#10b981' : result.overallScore >= 40 ? '#f59e0b' : '#ef4444'
+                      }}
+                    >
+                      {result.overallScore}
+                    </span>
                     <span className="result-gauge__label">dari 100</span>
                   </div>
                 </div>
 
-                <div className="result-main__quality">
+                <div
+                  className="result-main__quality"
+                  style={{
+                    color: result.overallScore >= 70 ? '#10b981' : result.overallScore >= 40 ? '#f59e0b' : '#ef4444',
+                    backgroundColor: result.overallScore >= 70 ? 'rgba(16, 185, 129, 0.1)' : result.overallScore >= 40 ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)'
+                  }}
+                >
                   <CheckCircle2 size={16} />
                   {result.quality}
                 </div>

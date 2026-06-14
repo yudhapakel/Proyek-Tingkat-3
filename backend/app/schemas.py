@@ -23,6 +23,13 @@ class UserResponse(BaseModel):
     created_at: datetime | None = None
 
 
+class UserUpdate(BaseModel):
+    name: str | None = Field(None, min_length=2, max_length=100)
+    email: str | None = Field(None, min_length=5, max_length=100)
+    password: str | None = Field(None, min_length=6, max_length=72)
+
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"

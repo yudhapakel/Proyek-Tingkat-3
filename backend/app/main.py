@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from . import models
 from .ai_engine.vision import analyze_fish_image
 from .database import SessionLocal, engine, get_db
-from .schemas import ArticleListResponse, ArticleResponse, AnalysisResponse, TokenResponse, UserCreate, UserLogin, UserResponse
+from .schemas import ArticleListResponse, ArticleResponse, AnalysisResponse, TokenResponse, UserCreate, UserLogin, UserResponse, UserUpdate
 from .security import create_access_token, get_current_user, hash_password, verify_password
 
 models.Base.metadata.create_all(bind=engine)
@@ -174,6 +174,31 @@ def swagger_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session 
 
 @app.get("/users/me", response_model=UserResponse)
 def get_me(current_user: models.User = Depends(get_current_user)):
+    return current_user
+
+
+@app.put("/users/me", response_model=UserResponse)
+def update_me(
+    payload: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if payload.email is not None:
+        email = payload.email.strip().lower()
+        if email != current_user.email:
+            existing_user = db.query(models.User).filter(models.User.email == email).first()
+            if existing_user:
+                raise HTTPException(status_code=400, detail="Email sudah terdaftar")
+            current_user.email = email
+
+    if payload.name is not None:
+        current_user.name = payload.name.strip()
+
+    if payload.password is not None:
+        current_user.hashed_password = hash_password(payload.password)
+
+    db.commit()
+    db.refresh(current_user)
     return current_user
 
 
