@@ -1,0 +1,85 @@
+{
+  "class_names": [
+    "gurame",
+    "mujair",
+    "tongkol"
+  ],
+  "best_val_accuracy": 0.9921259842519685,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 1.0840081014032439,
+      "train_accuracy": 0.39960629921259844,
+      "val_loss": 0.992767679409718,
+      "val_accuracy": 0.6614173228346457
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.9689213286234638,
+      "train_accuracy": 0.6771653543307087,
+      "val_loss": 0.8857665545358433,
+      "val_accuracy": 0.8031496062992126
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.873293919826117,
+      "train_accuracy": 0.7933070866141733,
+      "val_loss": 0.7824036202092809,
+      "val_accuracy": 0.8661417322834646
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.7562803565047858,
+      "train_accuracy": 0.8956692913385826,
+      "val_loss": 0.6710909511160663,
+      "val_accuracy": 0.9133858267716536
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.6486685257258378,
+      "train_accuracy": 0.9173228346456693,
+      "val_loss": 0.5446344283152753,
+      "val_accuracy": 0.937007874015748
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.5358749536548074,
+      "train_accuracy": 0.9271653543307087,
+      "val_loss": 0.4417511675301499,
+      "val_accuracy": 0.968503937007874
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.4748501639197192,
+      "train_accuracy": 0.9015748031496063,
+      "val_loss": 0.3458667388112526,
+      "val_accuracy": 0.9763779527559056
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.38397413046341244,
+      "train_accuracy": 0.9330708661417323,
+      "val_loss": 0.2872347859885749,
+      "val_accuracy": 0.984251968503937
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.3215939174956224,
+      "train_accuracy": 0.9429133858267716,
+      "val_loss": 0.22969696512372476,
+      "val_accuracy": 0.9921259842519685
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.2659410451810191,
+      "train_accuracy": 0.9566929133858267,
+      "val_loss": 0.18900708185406181,
+      "val_accuracy": 0.984251968503937
+    }
+  ],
+  "dataset_counts": {
+    "gurame": 291,
+    "mujair": 220,
+    "tongkol": 124
+  }
+}
