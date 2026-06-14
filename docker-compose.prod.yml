@@ -1,0 +1,59 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: fisight_mysql_prod
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: change-this-root-password
+      MYSQL_DATABASE: fisight_db
+      MYSQL_USER: fisight_user
+      MYSQL_PASSWORD: change-this-user-password
+    volumes:
+      - fisight_db_data_prod:/var/lib/mysql
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fisight_backend_prod
+    restart: always
+    environment:
+      - DATABASE_URL=mysql+pymysql://fisight_user:change-this-user-password@db:3306/fisight_db
+      - SECRET_KEY=change-this-to-a-very-secure-secret-key-prod
+      - ACCESS_TOKEN_EXPIRE_SECONDS=86400
+    volumes:
+      - fisight_backend_uploads:/app/uploads
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=https://api.yourdomain.com
+    container_name: fisight_frontend_prod
+    restart: always
+    depends_on:
+      - backend
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: fisight_caddy_prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  fisight_db_data_prod:
+  fisight_backend_uploads:
+  caddy_data:
+  caddy_config:

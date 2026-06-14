@@ -1,0 +1,16 @@
+# Caddy Configuration for Fisight
+# Ganti domain di bawah ini sesuai domain VPS temen lu
+
+# Frontend SPA
+yourdomain.com {
+    reverse_proxy frontend:80
+}
+
+# Backend API
+api.yourdomain.com {
+    # Set upload file limit (misal 10MB)
+    request_body_limit 10485760
+
+    # Proxy to FastAPI backend
+    reverse_proxy backend:8000
+}

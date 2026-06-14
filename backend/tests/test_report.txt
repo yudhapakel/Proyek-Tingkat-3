@@ -1,0 +1,32 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.5, pytest-9.0.3, pluggy-1.6.0 -- /home/yudha/projects/Proyek-Tingkat-3/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/yudha
+plugins: anyio-4.13.0
+collecting ... collected 13 items
+
+../../projects/Proyek-Tingkat-3/backend/tests/test_analysis_history_wbt.py::test_history_returns_only_current_user_analysis PASSED [  7%]
+../../projects/Proyek-Tingkat-3/backend/tests/test_analysis_history_wbt.py::test_history_returns_empty_list_when_user_has_no_analysis PASSED [ 15%]
+../../projects/Proyek-Tingkat-3/backend/tests/test_auth.py::test_register_user_success PASSED [ 23%]
+../../projects/Proyek-Tingkat-3/backend/tests/test_auth.py::test_register_duplicate_email PASSED [ 30%]
+../../projects/Proyek-Tingkat-3/backend/tests/test_auth.py::test_login_success PASSED [ 38%]
+../../projects/Proyek-Tingkat-3/backend/tests/test_auth.py::test_login_invalid_password PASSED [ 46%]
+../../projects/Proyek-Tingkat-3/backend/tests/test_helpers.py::test_infer_fish_type PASSED [ 53%]
+../../projects/Proyek-Tingkat-3/backend/tests/test_helpers.py::test_validate_image_valid PASSED [ 61%]
+../../projects/Proyek-Tingkat-3/backend/tests/test_helpers.py::test_validate_image_invalid PASSED [ 69%]
+../../projects/Proyek-Tingkat-3/backend/tests/test_regression.py::test_regression_e2e_flow PASSED [ 76%]
+../../projects/Proyek-Tingkat-3/backend/tests/test_security.py::test_hash_password_valid PASSED [ 84%]
+../../projects/Proyek-Tingkat-3/backend/tests/test_security.py::test_hash_password_invalid PASSED [ 92%]
+../../projects/Proyek-Tingkat-3/backend/tests/test_security.py::test_create_access_token PASSED [100%]
+
+=============================== warnings summary ===============================
+../../projects/Proyek-Tingkat-3/backend/app/database.py:33
+  /home/yudha/projects/Proyek-Tingkat-3/backend/app/database.py:33: MovedIn20Warning: The ``declarative_base()`` function is now available as sqlalchemy.orm.declarative_base(). (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    Base = declarative_base()
+
+projects/Proyek-Tingkat-3/backend/tests/test_regression.py::test_regression_e2e_flow
+  /home/yudha/projects/Proyek-Tingkat-3/backend/app/ai_engine/vision.py:243: DeprecationWarning: Image.Image.getdata is deprecated and will be removed in Pillow 14 (2027-10-15). Use get_flattened_data instead.
+    pixels = list(rgb.getdata())
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 13 passed, 2 warnings in 16.49s ========================
