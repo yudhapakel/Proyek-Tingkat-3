@@ -78,6 +78,14 @@ export function login(email: string, password: string) {
   })
 }
 
+export function loginGoogle(credential: string) {
+  return apiRequest<AuthResponse>('/auth/google', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credential }),
+  })
+}
+
 export function register(name: string, email: string, password: string) {
   return apiRequest<AuthResponse>('/auth/register', {
     method: 'POST',

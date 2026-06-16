@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
+import { GoogleLogin } from '@react-oauth/google'
 import fishEyeLogo from '../assets/fish-eye-logo.png'
 import AuthBackground from '../components/AuthBackground'
-import { getErrorMessage, login } from '../lib/api'
+import { getErrorMessage, login, loginGoogle } from '../lib/api'
 import { saveAuth } from '../lib/auth'
 import './AuthPages.css'
 
@@ -23,6 +24,21 @@ export default function LoginPage() {
 
     try {
       const auth = await login(email, password)
+      if (remember) saveAuth(auth)
+      navigate('/dashboard', { replace: true })
+      window.dispatchEvent(new CustomEvent('fisight-authenticated', { detail: auth }))
+    } catch (err) {
+      setError(getErrorMessage(err))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    setIsLoading(true)
+    setError('')
+    try {
+      const auth = await loginGoogle(credentialResponse.credential)
       if (remember) saveAuth(auth)
       navigate('/dashboard', { replace: true })
       window.dispatchEvent(new CustomEvent('fisight-authenticated', { detail: auth }))
@@ -103,16 +119,15 @@ export default function LoginPage() {
         </form>
 
         <div className="auth-card__divider">
-          <span>or sign up with</span>
+          <span>or sign in with</span>
         </div>
 
-        <div className="auth-card__social">
-          <button type="button" className="auth-social-btn" id="login-google" disabled>
-            <span>Google</span>
-          </button>
-          <button type="button" className="auth-social-btn" id="login-apple" disabled>
-            <span>Apple</span>
-          </button>
+        <div className="auth-card__google-container" style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => setError('Google Sign-In gagal. Coba lagi ya bro.')}
+            useOneTap
+          />
         </div>
 
         <p className="auth-card__switch">
