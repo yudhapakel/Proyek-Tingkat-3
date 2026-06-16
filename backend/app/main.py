@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from . import models
 from .ai_engine.vision import analyze_fish_image
 from .database import SessionLocal, engine, get_db
-from .schemas import ArticleListResponse, ArticleResponse, AnalysisResponse, TokenResponse, UserCreate, UserLogin, UserResponse, UserUpdate
+from .schemas import ArticleListResponse, ArticleResponse, AnalysisResponse, TokenResponse, UserCreate, UserLogin, UserResponse, UserUpdate, GoogleLoginRequest
 from .security import create_access_token, get_current_user, hash_password, verify_password
 
 models.Base.metadata.create_all(bind=engine)
@@ -155,6 +155,49 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == email).first()
     if not user or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email atau password salah")
+
+    token = create_access_token(subject=str(user.id), extra={"email": user.email})
+    return TokenResponse(access_token=token, user=user)
+
+
+@app.post("/auth/google", response_model=TokenResponse)
+def google_login(payload: GoogleLoginRequest, db: Session = Depends(get_db)):
+    from google.oauth2 import id_token
+    from google.auth.transport import requests as google_requests
+    import os
+
+    google_client_id = os.getenv("GOOGLE_CLIENT_ID", "")
+    if not google_client_id:
+        # Fallback default client id jika env belum di-set agar tidak crash saat testing awal
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="GOOGLE_CLIENT_ID belum dikonfigurasi di environment backend"
+        )
+
+    try:
+        id_info = id_token.verify_oauth2_token(
+            payload.credential,
+            google_requests.Request(),
+            google_client_id
+        )
+        email = id_info.get("email").strip().lower()
+        name = id_info.get("name")
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token Google tidak valid atau kedaluwarsa"
+        )
+
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        user = models.User(
+            name=name,
+            email=email,
+            hashed_password=hash_password(str(uuid4())),
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
     token = create_access_token(subject=str(user.id), extra={"email": user.email})
     return TokenResponse(access_token=token, user=user)

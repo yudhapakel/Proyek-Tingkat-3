@@ -29,6 +29,11 @@ class UserUpdate(BaseModel):
     password: str | None = Field(None, min_length=6, max_length=72)
 
 
+class GoogleLoginRequest(BaseModel):
+    credential: str
+
+
+
 
 class TokenResponse(BaseModel):
     access_token: str
